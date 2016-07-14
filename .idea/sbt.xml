@@ -12,8 +12,8 @@
             <option value="$PROJECT_DIR$/project" />
           </set>
         </option>
-        <option name="resolveClassifiers" value="true" />
         <option name="resolveSbtClassifiers" value="true" />
+        <option name="sbtVersion" value="0.13.8" />
       </SbtProjectSettings>
     </option>
   </component>
