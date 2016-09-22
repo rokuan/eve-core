@@ -14,7 +14,7 @@ case class StringValueMatcher(s: String) extends ValueMatcher {
 }
 
 case class NumberValueMatcher(n: Number) extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = ???
+  override def matches(v: ValueSource): Boolean = v.isNumber() && v.getNumber() == n
 }
 
 case object AnyValueMatcher extends ValueMatcher {

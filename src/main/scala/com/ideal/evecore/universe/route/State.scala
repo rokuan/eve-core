@@ -1,8 +1,7 @@
 package com.ideal.evecore.universe.route
 
-/**
-  * Created by Christophe on 15/07/2016.
-  */
-class State {
+import com.ideal.evecore.universe.ValueMatcher
 
+trait State[T] {
+  def getNext(): Set[(ValueMatcher, State[T])]
 }

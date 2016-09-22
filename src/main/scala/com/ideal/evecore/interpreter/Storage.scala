@@ -2,10 +2,11 @@ package com.ideal.evecore.interpreter
 
 import com.ideal.evecore.io.Writer
 import com.rokuan.calliopecore.sentence.IPronoun
-import com.rokuan.calliopecore.sentence.structure.content.INominalObject
+import com.rokuan.calliopecore.sentence.structure.content.{ITimeObject, IWayObject, INominalObject}
 import com.rokuan.calliopecore.sentence.structure.data.nominal._
 import com.rokuan.calliopecore.sentence.structure.data.place.{PlaceObject, NamedPlaceObject, LocationObject, AdditionalPlace}
 import com.rokuan.calliopecore.sentence.structure.data.time.SingleTimeObject
+import com.rokuan.calliopecore.sentence.structure.data.way.TransportObject
 
 import scala.util.Try
 
@@ -13,11 +14,15 @@ import scala.util.Try
   * Created by Christophe on 15/07/2016.
   */
 trait Storage[QueryType] {
+  import Storage._
+
   def update(context: Context[QueryType], left: INominalObject, value: INominalObject)
   def set(context: Context[QueryType], left: INominalObject, field: String, value: INominalObject)
   def set(context: Context[QueryType], left: INominalObject, value: INominalObject)
 
   def get() = {}
+
+  def findSubject(context: Context[QueryType], subject: INominalObject): Try[EveObject]
 
   final def findObject(context: Context[QueryType], src: INominalObject, createIfNeeded: Boolean = false): Try[EveObject] = {
     src match {
@@ -29,10 +34,9 @@ trait Storage[QueryType] {
       case name: NameObject => findNameObject(context, name)
       case country: CountryObject => findCountry(country)
       case date: SingleTimeObject => Try(new EveTimeObject(date)) // TODO: voir quel type renvoyer (ITimeObject/Date)
-      case language: LanguageObject => findLanguage(language)
-      case location: LocationObject => null // TODO:
+      case language: LanguageObject => Try(new EveStructuredObject(Writer.write(language)))
+      case location: LocationObject => findLocation(location)
       case namedPlace: NamedPlaceObject => findNamedPlace(namedPlace)
-      //case number:  =>
       case additionalObject: AdditionalObject => findAdditionalDataByCode(additionalObject.`object`.getCode)
       case additionalPerson: AdditionalPerson => findAdditionalDataByCode(additionalPerson.person.getCode)
       case phoneNumber: PhoneNumberObject => Try(new EveStructuredObject(Writer.write(phoneNumber)))
@@ -40,8 +44,23 @@ trait Storage[QueryType] {
       case pronounSubject: PronounSubject => resolvePronounSubject(context, pronounSubject)
       case quantity: QuantityObject => Try(new EveStructuredObject(Writer.write(quantity)))
       case unit: UnitObject => Try(new EveStructuredObject(Writer.write(unit)))
-      case verbalGroup: VerbalGroup => null
-      case _ => null
+      case verbalGroup: VerbalGroup | _ => notImplementedYet
+    }
+  }
+
+  def findTime(context: Context[QueryType], time: ITimeObject): Try[EveObject] = {
+    time match {
+      case _ => notImplementedYet
+    }
+  }
+
+  def findWay(context: Context[QueryType], way: IWayObject): Try[EveObject] = {
+    way match {
+      case color: ColorObject => findColor(color)
+      case unit: UnitObject => Try(new EveStructuredObject(Writer.write(unit)))
+      case language: LanguageObject => Try(new EveStructuredObject(Writer.write(language)))
+      case transport: TransportObject => Try(new EveStructuredObject(Writer.write(transport)))
+      case _ => notImplementedYet
     }
   }
 
@@ -49,13 +68,16 @@ trait Storage[QueryType] {
   protected def findAbstractTarget(context: Context[QueryType], abstractTarget: AbstractTarget): Try[EveObject] = findPronounSource(context, abstractTarget.source)
 
   def findPronounSource(context: Context[QueryType], pronoun: IPronoun): Try[EveObject]
-  //def findAbstractTarget(context: Context[QueryType], target: AbstractTarget): Try[EveObject]
   def findNameObject(context: Context[QueryType], name: NameObject): Try[EveObject]
   def findCharacter(context: Context[QueryType], char: CharacterObject): Try[EveObject]
   def findNamedPlace(place: NamedPlaceObject): Try[EveObject]
-  def findLanguage(language: LanguageObject): Try[EveObject]
+  def findLocation(location: LocationObject): Try[EveObject]
   def findColor(color: ColorObject): Try[EveObject]
   def findCity(city: CityObject): Try[EveObject]
   def findCountry(country: CountryObject): Try[EveObject]
   def findAdditionalDataByCode(code: String): Try[EveObject]
+}
+
+object Storage {
+  def notImplementedYet = Try(throw new Exception("Not implemented yet"))
 }

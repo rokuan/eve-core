@@ -1,6 +1,7 @@
 package com.ideal.evecore.universe.receiver
 
 import com.ideal.evecore.common.Mapping.Mapping
+import com.ideal.evecore.universe.ValueMatcher
 
 
 /**
@@ -10,7 +11,15 @@ trait Receiver {
   def initReceiver(): Unit
   def handleMessage(message: Message)
   def destroyReceiver(): Unit
-  def getMappings(): Mapping
+  def getName(): String
+  def getMappings(): Mapping[_ <: ValueMatcher]
+
+  override def toString: String = getName()
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case null => false
+    case r: Receiver => Option(getName()).map(_.equals(r.getName())).getOrElse(false)
+    case _ => false
+  }
 }
 
 object Receiver {

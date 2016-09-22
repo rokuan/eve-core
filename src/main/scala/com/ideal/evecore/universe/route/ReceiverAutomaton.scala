@@ -6,11 +6,16 @@ import com.ideal.evecore.universe.receiver.Receiver
   * Created by Christophe on 15/07/2016.
   */
 class ReceiverAutomaton extends Automaton[ObjectValueSource, Receiver] {
-  override def add(o: Receiver): Unit = {
+  protected val receivers = collection.mutable.ListBuffer[Receiver]()
 
+  override def add(o: Receiver): Unit = receivers += o
+
+  override def remove(o: Receiver): Unit = receivers -= o
+
+  override def find(o: ObjectValueSource): Option[Receiver] = receivers.find { r =>
+    r.getMappings().forall { case (key, matcher) =>
+      val objectMap = o.getObject()
+      objectMap.contains(key) && matcher.matches(objectMap(key))
+    }
   }
-
-  override def remove(o: Receiver): Unit = {}
-
-  override def find(o: ObjectValueSource): Option[Receiver] = Option.empty[Receiver]
 }

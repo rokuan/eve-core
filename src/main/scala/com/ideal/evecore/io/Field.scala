@@ -34,6 +34,10 @@ object CountryObjectKey {
   val Code = "country_code"
 }
 
+object TransportObjectKey {
+  val Type = "transport_type"
+}
+
 
 
 
