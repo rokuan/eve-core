@@ -44,7 +44,7 @@ trait Storage[QueryType] {
       case pronounSubject: PronounSubject => resolvePronounSubject(context, pronounSubject)
       case quantity: QuantityObject => Try(new EveStructuredObject(Writer.write(quantity)))
       case unit: UnitObject => Try(new EveStructuredObject(Writer.write(unit)))
-      case verbalGroup: VerbalGroup | _ => notImplementedYet
+      case _: VerbalGroup | _ => notImplementedYet
     }
   }
 

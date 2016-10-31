@@ -1,7 +1,10 @@
 package com.ideal.evecore.universe.receiver
 
 import com.ideal.evecore.common.Mapping.Mapping
+import com.ideal.evecore.interpreter.EveObject
 import com.ideal.evecore.universe.ValueMatcher
+
+import scala.util.Try
 
 
 /**
@@ -9,7 +12,7 @@ import com.ideal.evecore.universe.ValueMatcher
   */
 trait Receiver {
   def initReceiver(): Unit
-  def handleMessage(message: Message)
+  def handleMessage(message: Message): Try[EveObject]
   def destroyReceiver(): Unit
   def getName(): String
   def getMappings(): Mapping[_ <: ValueMatcher]

@@ -20,7 +20,7 @@ class ReceiverState extends State[Receiver] {
     }
   }
 
-  override def getNext(): Seq[(ValueMatcher, Seq[State[Receiver]])] = nextStates.toSeq
+  override def getNext(): Set[(ValueMatcher, Seq[State[Receiver]])] = nextStates.toSet
 }
 
 object ReceiverState {

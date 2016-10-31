@@ -10,7 +10,7 @@ object World {
   private val receivers = collection.mutable.Map[String, Receiver]()
   private val automaton = new ReceiverAutomaton
 
-  def registerReceiver(receiver: Receiver) = {
+  def registerReceiver(receiver: Receiver): Unit = {
     val name = receiver.getName()
     receivers.get(name).map { r =>
       receivers.remove(name)
@@ -22,9 +22,9 @@ object World {
     receiver.initReceiver()
   }
 
-  def unregisterReceiver(receiver: Receiver) = unregisterReceiver(receiver.getName())
+  def unregisterReceiver(receiver: Receiver): Unit = unregisterReceiver(receiver.getName())
 
-  def unregisterReceiver(name: String) = {
+  def unregisterReceiver(name: String): Unit = {
     receivers.remove(name).map { r =>
       automaton.remove(r)
       r.destroyReceiver()

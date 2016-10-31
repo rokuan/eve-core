@@ -35,9 +35,12 @@ trait Evaluator[Q] {
       case _ => classOf[EveObject]
     }
 
-    val action = question.getAction
+    val verbStructure = question.getAction
+    val action = verbStructure.getMainAction.getAction
 
-    if(action.does(ActionType.BE)){
+
+    //if(action.does(ActionType.BE)){
+    if(action == ActionType.BE){
       val result = storage.findObject(context, question.getDirectObject)
       // TODO: decommenter et verifier qu'il y a bien un resultat
       //result.map(v => v.asInstanceOf[expectedType.type])
@@ -47,16 +50,17 @@ trait Evaluator[Q] {
   }
 
   protected def evalAffirmation(affirmation: AffirmationObject) = {
-    val action: ActionObject = affirmation.getAction
+    val verb: ActionObject = affirmation.getAction
+    val action = verb.getMainAction
 
     // TODO: prendre en compte le temps du verbe (uniquement present pour l'instant)
 
-    if(action.does(ActionType.BE)){
+    if(action.getAction == ActionType.BE){
       //database.update(context, affirmation.getSubject, affirmation.affirmation)
       //database.set(context, affirmation.getSubject, affirmation)
-    } else if(action.does(ActionType.HAVE)){
+    } else if(action.getAction == ActionType.HAVE){
       //database.set(context, )
-    } else if(action.isAFieldAction) {
+    } else if(action.isFieldBound) {
       val field = action.getBoundField
       storage.set(context, affirmation.getSubject, field, affirmation.getDirectObject)
     }

@@ -1,10 +1,11 @@
 package com.ideal.evecore.controller
 
 import com.ideal.evecore.common.Mapping.Mapping
-import com.ideal.evecore.interpreter.{EveObject, EveNumberObject, EveStringObject, EveStructuredObject}
+import com.ideal.evecore.interpreter.{EveNumberObject, EveObject, EveStringObject, EveStructuredObject}
 import com.ideal.evecore.io.{QuantityObjectKey, UnitObjectKey}
 import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
-import com.ideal.evecore.universe.receiver.{ObjectMessage, Message, Receiver}
+import com.ideal.evecore.universe.receiver.{Message, ObjectMessage, Receiver}
+import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
 import com.rokuan.calliopecore.sentence.structure.data.way.WayAdverbial
 
@@ -19,7 +20,7 @@ class UnitConverterController extends Receiver {
   override def getName(): String = getClass.getName
 
   override def getMappings(): Mapping[_ <: ValueMatcher] = Map(
-    "action" -> StringValueMatcher("CONVERT"),
+    "action" -> StringValueMatcher(ActionType.CONVERT.name()),
     "how" -> ObjectValueMatcher(Map("wayType" -> WayAdverbial.WayType.UNIT.name()))
   )
 
@@ -33,9 +34,7 @@ class UnitConverterController extends Receiver {
         .map(UnitType.valueOf(_))
 
       for {
-        quantity <- srcValue
-        value <- quantity._1
-        fromUnit <- quantity._2
+        (value, fromUnit) <- srcValue
         toUnit <- destUnit
       } yield {
         if(isTimeUnitType(fromUnit) && isTimeUnitType(toUnit)){
