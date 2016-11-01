@@ -62,7 +62,7 @@ object ValueSourceConverters {
     case EveNumberObject(n) => NumberValueSource(n)
     case EveBooleanObject(b) => BooleanValueSource(b)
     case EveStructuredObject(o) => ObjectValueSource(o.map { case (k, eo) => (k -> eveObjectToValueSource(eo)) }.toMap)
-    case EveStructuredObjectList(os) => ArrayValueSource(os.map(eveObjectToValueSource(_)).toArray)
+    case EveObjectList(os) => ArrayValueSource(os.map(eveObjectToValueSource(_)).toArray)
     case null => NullValueSource
   }
 

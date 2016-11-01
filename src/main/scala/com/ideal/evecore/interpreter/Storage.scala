@@ -19,6 +19,8 @@ trait Storage[QueryType] {
   def update(context: Context[QueryType], left: INominalObject, value: INominalObject)
   def set(context: Context[QueryType], left: INominalObject, field: String, value: INominalObject)
   def set(context: Context[QueryType], left: INominalObject, value: INominalObject)
+  def delete(context: Context[QueryType], left: INominalObject, field: String, value: INominalObject)
+  def delete(context: Context[QueryType], left: INominalObject, value: INominalObject)
 
   def get() = {}
 
