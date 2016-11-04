@@ -2,11 +2,13 @@ package com.ideal.evecore.interpreter
 
 import com.ideal.evecore.universe.World
 import com.ideal.evecore.universe.receiver.ObjectMessage
-import com.ideal.evecore.universe.route.{ValueSource, ObjectValueSource}
+import com.ideal.evecore.universe.route.{NullValueSource, ValueSource, ObjectValueSource}
 import com.rokuan.calliopecore.sentence.ActionObject
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.QuestionObject.QuestionType
 import com.rokuan.calliopecore.sentence.structure.{OrderObject, AffirmationObject, QuestionObject, InterpretationObject}
+
+import scala.util.{Success, Try}
 
 /**
  * Created by Christophe on 20/09/2016.
@@ -69,24 +71,21 @@ trait Evaluator[Q] {
   protected def evalOrder(order: OrderObject) = {
     import com.ideal.evecore.universe.route.ValueSourceConverters._
 
-    val subject = storage.findSubject(context, order.getSubject)
-    val what = storage.findObject(context, order.getDirectObject)
-    val when = storage.findTime(context, order.getTimeAdverbial)
-    val how = storage.findWay(context, order.getWayAdverbial)
+    val actionType = order.getAction.getMainAction.getAction
 
-    for {
-      s <- subject
-      w <- what
-      h <- how
-    } yield {
-      val requestObject: ObjectValueSource = Map[String, ValueSource](
-        "subject" -> s,
-        "what" -> w,
-        "how" -> h
-      )
-      World.findReceiver(requestObject).map { _.handleMessage(ObjectMessage(requestObject)) }
+    val values = List[(String, Try[EveObject])](("subject", storage.findSubject(context, order.getSubject)),
+    ("what", storage.findObject(context, order.getDirectObject)),
+      ("when", storage.findTime(context, order.getTimeAdverbial)),
+      ("how", storage.findWay(context, order.getWayAdverbial)),
+      ("to", storage.findObject(context, order.getTarget)))
+
+    val requestObject: ObjectValueSource = values.collect {
+      case (k, Success(v)) => (k -> (v: ValueSource))
+    }.foldLeft[Map[String, ValueSource]](Map[String, ValueSource]("action" -> actionType.name())){
+      case (acc, p) => acc + p
     }
 
+    World.findReceiver(requestObject).map { _.handleMessage(ObjectMessage(requestObject)) }
 
 
     /*val action: ActionObject = order.getAction

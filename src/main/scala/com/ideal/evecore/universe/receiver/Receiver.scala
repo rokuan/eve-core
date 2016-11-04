@@ -14,17 +14,13 @@ trait Receiver {
   def initReceiver(): Unit
   def handleMessage(message: Message): Try[EveObject]
   def destroyReceiver(): Unit
-  def getName(): String
+  def getReceiverName(): String = getClass.getName
   def getMappings(): Mapping[_ <: ValueMatcher]
 
-  override def toString: String = getName()
+  override def toString: String = getReceiverName()
   override def equals(obj: scala.Any): Boolean = obj match {
     case null => false
-    case r: Receiver => Option(getName()).map(_.equals(r.getName())).getOrElse(false)
+    case r: Receiver => Option(getReceiverName()).map(_.equals(r.getReceiverName())).getOrElse(false)
     case _ => false
   }
-}
-
-object Receiver {
-
 }

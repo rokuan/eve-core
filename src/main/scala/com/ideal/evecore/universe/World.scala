@@ -11,7 +11,7 @@ object World {
   private val automaton = new ReceiverAutomaton
 
   def registerReceiver(receiver: Receiver): Unit = {
-    val name = receiver.getName()
+    val name = receiver.getReceiverName()
     receivers.get(name).map { r =>
       receivers.remove(name)
       automaton.remove(r)
@@ -22,7 +22,7 @@ object World {
     receiver.initReceiver()
   }
 
-  def unregisterReceiver(receiver: Receiver): Unit = unregisterReceiver(receiver.getName())
+  def unregisterReceiver(receiver: Receiver): Unit = unregisterReceiver(receiver.getReceiverName())
 
   def unregisterReceiver(name: String): Unit = {
     receivers.remove(name).map { r =>

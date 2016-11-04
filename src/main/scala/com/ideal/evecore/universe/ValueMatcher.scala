@@ -25,6 +25,10 @@ case class OrValueMatcher(a: Array[ValueMatcher]) extends ValueMatcher {
   override def matches(v: ValueSource): Boolean = a.exists(_.matches(v))
 }
 
+case class BooleanValueMatcher(b: Boolean) extends ValueMatcher {
+  override def matches(v: ValueSource): Boolean = v.isBoolean() && v.getBoolean() == b
+}
+
 case object NullValueMatcher extends ValueMatcher {
   override def matches(v: ValueSource): Boolean = v.isNull()
 }

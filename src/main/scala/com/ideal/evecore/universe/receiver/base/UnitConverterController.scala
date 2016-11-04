@@ -1,10 +1,10 @@
-package com.ideal.evecore.controller
+package com.ideal.evecore.universe.receiver.base
 
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.{EveNumberObject, EveObject, EveStringObject, EveStructuredObject}
 import com.ideal.evecore.io.{QuantityObjectKey, UnitObjectKey}
-import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
 import com.ideal.evecore.universe.receiver.{Message, ObjectMessage, Receiver}
+import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
 import com.rokuan.calliopecore.sentence.structure.data.way.WayAdverbial
@@ -17,7 +17,7 @@ import scala.util.Try
 class UnitConverterController extends Receiver {
   override def initReceiver(): Unit = {}
 
-  override def getName(): String = getClass.getName
+  override def getReceiverName(): String = getClass.getName
 
   override def getMappings(): Mapping[_ <: ValueMatcher] = Map(
     "action" -> StringValueMatcher(ActionType.CONVERT.name()),
