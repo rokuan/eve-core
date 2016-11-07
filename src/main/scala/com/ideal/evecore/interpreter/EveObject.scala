@@ -57,3 +57,5 @@ case class EveStructuredObject(o: Mapping[EveObject]) extends EveObject
 case class EveObjectList(a: Seq[EveObject]) extends EveObject {
   override def toString() = a.mkString(", ")
 }
+
+case object NoneObject extends EveObject

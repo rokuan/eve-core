@@ -22,10 +22,8 @@ object World {
     receiver.initReceiver()
   }
 
-  def unregisterReceiver(receiver: Receiver): Unit = unregisterReceiver(receiver.getReceiverName())
-
-  def unregisterReceiver(name: String): Unit = {
-    receivers.remove(name).map { r =>
+  def unregisterReceiver(receiver: Receiver): Unit = {
+    receivers.remove(receiver.getReceiverName()).map { r =>
       automaton.remove(r)
       r.destroyReceiver()
     }

@@ -19,18 +19,16 @@ import scala.util.{Failure, Success, Try}
 trait Storage[QueryType] {
   import Storage._
 
-  def update(context: Context[QueryType], left: INominalObject, value: INominalObject)
   def set(context: Context[QueryType], left: INominalObject, field: String, value: INominalObject)
   def set(context: Context[QueryType], left: INominalObject, value: INominalObject)
   def delete(context: Context[QueryType], left: INominalObject, field: String, value: INominalObject)
   def delete(context: Context[QueryType], left: INominalObject, value: INominalObject)
 
-  def get() = {}
-
-  def findSubject(context: Context[QueryType], subject: INominalObject): Try[EveObject]
+  def findSubject(context: Context[QueryType], subject: INominalObject): Try[EveObject] = findObject(context, subject)
 
   final def findObject(context: Context[QueryType], src: INominalObject, createIfNeeded: Boolean = false): Try[EveObject] = {
     src match {
+      case null => Failure(new Exception("Source object is null"))
       case abstractTarget: AbstractTarget => findAbstractTarget(context, abstractTarget)
       case additionalPlace: AdditionalPlace => findAdditionalDataByCode(additionalPlace.place.getCode)
       case char: CharacterObject => findCharacter(context, char)
@@ -55,6 +53,7 @@ trait Storage[QueryType] {
 
   def findTime(context: Context[QueryType], time: ITimeObject): Try[EveObject] = {
     time match {
+      case null => Failure(new Exception("Source object is null"))
       case s: SingleTimeObject => {
         Try {
           val result = Calendar.getInstance()
@@ -95,6 +94,7 @@ trait Storage[QueryType] {
 
   def findWay(context: Context[QueryType], way: IWayObject): Try[EveObject] = {
     way match {
+      case null => Failure(new Exception("Source object is null"))
       case color: ColorObject => findColor(color)
       case unit: UnitObject => Try(new EveStructuredObject(Writer.write(unit)))
       case language: LanguageObject => Try(new EveStructuredObject(Writer.write(language)))
