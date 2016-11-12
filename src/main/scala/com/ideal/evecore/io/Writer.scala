@@ -1,9 +1,10 @@
 package com.ideal.evecore.io
 
-
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.EveObject
+import com.rokuan.calliopecore.sentence.{ICityInfo, ICountryInfo}
 import com.rokuan.calliopecore.sentence.structure.data.nominal._
+import com.rokuan.calliopecore.sentence.structure.data.place.LocationObject
 import com.rokuan.calliopecore.sentence.structure.data.way.TransportObject
 
 
@@ -19,6 +20,7 @@ object Writer {
   val ColorObjectType = classOf[ColorObject]
   val CityObjectType = classOf[CityObject]
   val CountryObjectType = classOf[CountryObject]
+  val LocationObjectType = classOf[LocationObject]
   val TransportObjectType = classOf[TransportObject]
 
   def write[T](o: T)(implicit w: Writer[T]) = w.write(o)
@@ -61,6 +63,52 @@ object Writer {
       Map(
         CommonKey.Class -> TransportObjectType.getName,
         TransportObjectKey.Type -> o.transportType.name()
+      )
+  }
+
+  implicit object CountryWriter extends Writer[CountryObject] {
+    override def write(o: CountryObject): Mapping[EveObject] =
+      Map(
+        CommonKey.Class -> (CountryObjectType.getName: EveObject)
+      ) ++ CountryInfoWriter.write(o.country)
+  }
+
+  implicit object ColorWriter extends Writer[ColorObject] {
+    override def write(o: ColorObject): Mapping[EveObject] =
+      Map(
+        CommonKey.Class -> ColorObjectType.getName,
+        ColorObjectKey.Code -> o.color.getColorHexCode
+      )
+  }
+
+  implicit object CityWriter extends Writer[CityObject] {
+    override def write(o: CityObject): Mapping[EveObject] =
+      Map(
+        CommonKey.Class -> (CityObjectType.getName: EveObject)
+      ) ++ CityInfoWriter.write(o.city)
+  }
+
+  object CityInfoWriter extends Writer[ICityInfo] {
+    override def write(o: ICityInfo): Mapping[EveObject] = {
+      Map(
+        CityObjectKey.Latitude -> o.getLocation.getLatitude,
+        CityObjectKey.Longitude -> o.getLocation.getLongitude
+      )
+    }
+  }
+
+  object CountryInfoWriter extends Writer[ICountryInfo] {
+    override def write(o: ICountryInfo): Mapping[EveObject] = {
+      Map(CountryObjectKey.Code -> o.getCountryCode)
+    }
+  }
+
+  implicit object LocationWriter extends Writer[LocationObject] {
+    override def write(o: LocationObject): Mapping[EveObject] =
+      Map(
+        CommonKey.Class -> LocationObjectType.getName,
+        LocationObjectKey.City -> CityInfoWriter.write(o.city),
+        LocationObjectKey.Country -> CountryInfoWriter.write(o.country)
       )
   }
 }

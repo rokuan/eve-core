@@ -32,21 +32,21 @@ trait Storage[QueryType] {
       case abstractTarget: AbstractTarget => findAbstractTarget(context, abstractTarget)
       case additionalPlace: AdditionalPlace => findAdditionalDataByCode(additionalPlace.place.getCode)
       case char: CharacterObject => findCharacter(context, char)
-      case city: CityObject => findCity(city)
-      case color: ColorObject => findColor(color)
+      case city: CityObject => Try(Writer.write(city))
+      case color: ColorObject => Try(Writer.write(color))
       case name: NameObject => findNameObject(context, name)
-      case country: CountryObject => findCountry(country)
-      case date: SingleTimeObject => Try(new EveTimeObject(date)) // TODO: voir quel type renvoyer (ITimeObject/Date)
-      case language: LanguageObject => Try(new EveStructuredObject(Writer.write(language)))
-      case location: LocationObject => findLocation(location)
+      case country: CountryObject => Try(Writer.write(country))
+      case date: SingleTimeObject => findTime(context, date)
+      case language: LanguageObject => Try(Writer.write(language))
+      case location: LocationObject => Try(Writer.write(location))
       case namedPlace: NamedPlaceObject => findNamedPlace(namedPlace)
       case additionalObject: AdditionalObject => findAdditionalDataByCode(additionalObject.`object`.getCode)
       case additionalPerson: AdditionalPerson => findAdditionalDataByCode(additionalPerson.person.getCode)
-      case phoneNumber: PhoneNumberObject => Try(new EveStructuredObject(Writer.write(phoneNumber)))
+      case phoneNumber: PhoneNumberObject => Try(Writer.write(phoneNumber))
       case placeType: PlaceObject => null
       case pronounSubject: PronounSubject => resolvePronounSubject(context, pronounSubject)
-      case quantity: QuantityObject => Try(new EveStructuredObject(Writer.write(quantity)))
-      case unit: UnitObject => Try(new EveStructuredObject(Writer.write(unit)))
+      case quantity: QuantityObject => Try(Writer.write(quantity))
+      case unit: UnitObject => Try(Writer.write(unit))
       case _: VerbalGroup | _ => notImplementedYet
     }
   }
@@ -95,25 +95,21 @@ trait Storage[QueryType] {
   def findWay(context: Context[QueryType], way: IWayObject): Try[EveObject] = {
     way match {
       case null => Failure(new Exception("Source object is null"))
-      case color: ColorObject => findColor(color)
-      case unit: UnitObject => Try(new EveStructuredObject(Writer.write(unit)))
-      case language: LanguageObject => Try(new EveStructuredObject(Writer.write(language)))
-      case transport: TransportObject => Try(new EveStructuredObject(Writer.write(transport)))
+      case color: ColorObject => Try(Writer.write(color))
+      case unit: UnitObject => Try(Writer.write(unit))
+      case language: LanguageObject => Try(Writer.write(language))
+      case transport: TransportObject => Try(Writer.write(transport))
       case _ => notImplementedYet
     }
   }
 
-  protected def resolvePronounSubject(context: Context[QueryType], pronounSubject: PronounSubject): Try[EveObject] = findPronounSource(context, pronounSubject.pronoun)
-  protected def findAbstractTarget(context: Context[QueryType], abstractTarget: AbstractTarget): Try[EveObject] = findPronounSource(context, abstractTarget.source)
+  final private def resolvePronounSubject(context: Context[QueryType], pronounSubject: PronounSubject): Try[EveObject] = findPronounSource(context, pronounSubject.pronoun)
+  final protected def findAbstractTarget(context: Context[QueryType], abstractTarget: AbstractTarget): Try[EveObject] = findPronounSource(context, abstractTarget.source)
 
   def findPronounSource(context: Context[QueryType], pronoun: IPronoun): Try[EveObject]
   def findNameObject(context: Context[QueryType], name: NameObject): Try[EveObject]
   def findCharacter(context: Context[QueryType], char: CharacterObject): Try[EveObject]
   def findNamedPlace(place: NamedPlaceObject): Try[EveObject]
-  def findLocation(location: LocationObject): Try[EveObject]
-  def findColor(color: ColorObject): Try[EveObject]
-  def findCity(city: CityObject): Try[EveObject]
-  def findCountry(country: CountryObject): Try[EveObject]
   def findAdditionalDataByCode(code: String): Try[EveObject]
 }
 

@@ -34,6 +34,11 @@ object CountryObjectKey {
   val Code = "country_code"
 }
 
+object LocationObjectKey {
+  val City = "location_city"
+  val Country = "location_country"
+}
+
 object TransportObjectKey {
   val Type = "transport_type"
 }
