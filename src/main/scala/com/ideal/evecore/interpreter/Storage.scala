@@ -47,6 +47,7 @@ trait Storage[QueryType] {
       case pronounSubject: PronounSubject => resolvePronounSubject(context, pronounSubject)
       case quantity: QuantityObject => Try(Writer.write(quantity))
       case unit: UnitObject => Try(Writer.write(unit))
+      case person: PersonObject => Success(EveStringObject(person.name))
       case _: VerbalGroup | _ => notImplementedYet
     }
   }

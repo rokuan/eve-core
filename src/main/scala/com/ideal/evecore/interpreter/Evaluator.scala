@@ -68,19 +68,20 @@ trait Evaluator[Q] {
   }
 
   protected def evalOrder(order: OrderObject) = {
+    import com.ideal.evecore.io.InterpretationObjectKey._
     import com.ideal.evecore.universe.route.ValueSourceConverters._
 
     val actionType = order.getAction.getMainAction.getAction
 
-    val values = List[(String, Try[EveObject])](("subject", storage.findSubject(context, order.getSubject)),
-    ("what", storage.findObject(context, order.getDirectObject)),
-      ("when", storage.findTime(context, order.getTimeAdverbial)),
-      ("how", storage.findWay(context, order.getWayAdverbial)),
-      ("to", storage.findObject(context, order.getTarget)))
+    val values = List[(String, Try[EveObject])]((Subject, storage.findSubject(context, order.getSubject)),
+    (What, storage.findObject(context, order.getDirectObject)),
+      (When, storage.findTime(context, order.getTimeAdverbial)),
+      (How, storage.findWay(context, order.getWayAdverbial)),
+      (To, storage.findObject(context, order.getTarget)))
 
     val requestObject: ObjectValueSource = values.collect {
       case (k, Success(v)) => (k -> (v: ValueSource))
-    }.foldLeft[Map[String, ValueSource]](Map[String, ValueSource]("action" -> actionType.name())){
+    }.foldLeft[Map[String, ValueSource]](Map[String, ValueSource](Action -> actionType.name())){
       case (acc, p) => acc + p
     }
 

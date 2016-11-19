@@ -22,8 +22,9 @@ object EveObject {
   implicit def numberToEveObject(n: Number): EveNumberObject = EveNumberObject(n)
   implicit def booleanToEveObject(b: Boolean): EveBooleanObject = EveBooleanObject(b)
   implicit def dateToEveObject(d: Date): EveDateObject = EveDateObject(d)
-  implicit def arrayToEveObject(a: Array[_]): EveObjectList = EveObjectList(a.map(apply))
-  implicit def mapToEveObject(m: Map[_, _]): EveStructuredObject = EveStructuredObject(m.map { case (k, o) => (k.toString -> apply(o)) })
+  implicit def arrayToEveObject(a: Array[EveObject]): EveObjectList = EveObjectList(a)
+  implicit def mapToEveObject(m: Mapping[EveObject]): EveStructuredObject = EveStructuredObject(m)
+  implicit def optionToEveObject(o: Option[_]): EveObject = o.map(apply).orNull
 
   def apply(a: Any): EveObject = a match {
     case null => null
@@ -32,8 +33,10 @@ object EveObject {
     case n: Number => n
     case b: Boolean => b
     case d: Date => d
-    case a: Array[_] => a
-    case m: Map[_, _] => m
+    case a: Array[_] => EveObjectList(a.map(apply))
+    case m: Map[_, _] => EveStructuredObject(m.map { case (k, o) => (k.toString -> apply(o)) })
+    case o: Option[_] => o
+    case o: EveObject => o
   }
 }
 

@@ -2,12 +2,15 @@ package com.ideal.evecore.universe.receiver.base
 
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.{EveNumberObject, EveObject, EveStringObject, EveStructuredObject}
-import com.ideal.evecore.io.{QuantityObjectKey, UnitObjectKey}
+import com.ideal.evecore.io._
 import com.ideal.evecore.universe.receiver.{Message, ObjectMessage, Receiver}
-import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
+import com.ideal.evecore.universe.route.ObjectValueSource
+import com.ideal.evecore.universe.{ObjectValueMatcher, OrValueMatcher, StringValueMatcher, ValueMatcher}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
 import com.rokuan.calliopecore.sentence.structure.data.way.WayAdverbial
+import com.ideal.evecore.universe.route.ValueSourceConversions._
+import com.rokuan.calliopecore.sentence.structure.data.nominal.QuantityObject
 
 import scala.util.Try
 
@@ -20,27 +23,38 @@ class UnitConverterController extends Receiver {
   override def getReceiverName(): String = getClass.getName
 
   override def getMappings(): Mapping[_ <: ValueMatcher] = Map(
-    "action" -> StringValueMatcher(ActionType.CONVERT.name()),
-    "how" -> ObjectValueMatcher(Map("wayType" -> WayAdverbial.WayType.UNIT.name()))
+    InterpretationObjectKey.Action -> StringValueMatcher(ActionType.CONVERT.name()),
+    /*InterpretationObjectKey.What -> OrValueMatcher(
+      ObjectValueMatcher(Map(NominalObjectKey.))
+    ),*/
+    InterpretationObjectKey.How -> ObjectValueMatcher(Map(WayObjectKey.WayType -> WayAdverbial.WayType.UNIT.name()))
   )
 
   override def handleMessage(message: Message): Try[EveObject] = message match {
     case objectMessage: ObjectMessage =>
       val srcValue = Try {
-        val unitObject = objectMessage.obj.o("what").asInstanceOf[EveStructuredObject].o
-        (unitObject(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, unitObject(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)
+        val quantityObject: EveStructuredObject = objectMessage.obj.o(InterpretationObjectKey.What).asInstanceOf[ObjectValueSource]
+        (quantityObject.o(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, quantityObject.o(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)
       }.map { case (v: Number, t: String) => (v, UnitType.valueOf(t)) }
-      val destUnit = Try(objectMessage.obj.o("how").asInstanceOf[EveStructuredObject].o(UnitObjectKey.Type).asInstanceOf[EveStringObject].s)
-        .map(UnitType.valueOf(_))
+      val destUnit = Try {
+        val unitObject: EveStructuredObject = objectMessage.obj.o(InterpretationObjectKey.How).asInstanceOf[ObjectValueSource]
+        unitObject.o(UnitObjectKey.Type).asInstanceOf[EveStringObject].s
+      }.map(UnitType.valueOf(_))
 
       for {
         (value, fromUnit) <- srcValue
         toUnit <- destUnit
       } yield {
         if(isTimeUnitType(fromUnit) && isTimeUnitType(toUnit)){
-          EveNumberObject(timeConverter(value, fromUnit, toUnit))
+          val quantityObject = new QuantityObject
+          quantityObject.amount = timeConverter(value, fromUnit, toUnit).doubleValue()
+          quantityObject.unitType = toUnit
+          EveStructuredObject(Writer.write(quantityObject))
         } else if(isDistanceUnitType(fromUnit) && isDistanceUnitType(toUnit)) {
-          EveNumberObject(distanceConverter(value, fromUnit, toUnit))
+          val quantityObject = new QuantityObject
+          quantityObject.amount = distanceConverter(value, fromUnit, toUnit).doubleValue()
+          quantityObject.unitType = toUnit
+          EveStructuredObject(Writer.write(quantityObject))
         } else {
           throw new Exception("Unable to convert this value. Maybe those are two incompatible units")
         }

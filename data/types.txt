@@ -1,0 +1,8 @@
+animal
+mammary;animal
+dog;mammary
+feline;mammary
+shiba;dog
+cat;feline
+tiger;feline
+bird;animal

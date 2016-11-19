@@ -4,6 +4,25 @@ object CommonKey {
   val Class = "__class"
 }
 
+object InterpretationObjectKey {
+  val Action = "action"
+  val Subject = "subject"
+  val What = "what"
+  val How = "how"
+  val Where = "where"
+  val When = "when"
+  val To = "to"
+}
+
+object NominalObjectKey {
+  val GroupType = "group_type"
+}
+
+object WayObjectKey {
+  val WayType = "way_type"
+  val WayContext = "way_context"
+}
+
 object LanguageObjectKey {
   val Code = "language_code"
 }
@@ -42,8 +61,3 @@ object LocationObjectKey {
 object TransportObjectKey {
   val Type = "transport_type"
 }
-
-
-
-
-

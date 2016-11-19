@@ -2,6 +2,7 @@ package com.ideal.evecore.io
 
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.EveObject
+import com.rokuan.calliopecore.sentence.structure.content.{INominalObject, IWayObject}
 import com.rokuan.calliopecore.sentence.{ICityInfo, ICountryInfo}
 import com.rokuan.calliopecore.sentence.structure.data.nominal._
 import com.rokuan.calliopecore.sentence.structure.data.place.LocationObject
@@ -25,29 +26,46 @@ object Writer {
 
   def write[T](o: T)(implicit w: Writer[T]) = w.write(o)
 
-  implicit object LanguageObjectWriter extends Writer[LanguageObject] {
-    override def write(o: LanguageObject) =
+  object NominalObjectWriter extends Writer[INominalObject] {
+    override def write(o: INominalObject): Mapping[EveObject] =
+      Map(NominalObjectKey.GroupType -> o.getGroupType.name())
+  }
+
+  object WayObjectWriter extends Writer[IWayObject]{
+    override def write(o: IWayObject): Mapping[EveObject] =
       Map(
-        CommonKey.Class -> LanguageObjectType.getName,
-        LanguageObjectKey.Code -> o.language.getLanguageCode
+        WayObjectKey.WayType -> o.getWayType.name(),
+        WayObjectKey.WayContext -> Option(o.getWayPreposition).map(_.getWayContext.name())
       )
   }
 
+  implicit object LanguageObjectWriter extends Writer[LanguageObject] {
+    override def write(o: LanguageObject) =
+      WayObjectWriter.write(o) ++
+        (Map(
+          CommonKey.Class -> LanguageObjectType.getName,
+          LanguageObjectKey.Code -> o.language.getLanguageCode
+        ): Mapping[EveObject])
+  }
+
   implicit object UnitObjectWriter extends Writer[UnitObject] {
-    override def write(o: UnitObject) =
-      Map(
-        CommonKey.Class -> UnitObjectType.getName,
-        UnitObjectKey.Type -> o.unitType.name()
-      )
+    override def write(o: UnitObject) = {
+      WayObjectWriter.write(o) ++
+        (Map(
+          CommonKey.Class -> UnitObjectType.getName,
+          UnitObjectKey.Type -> o.unitType.name()
+        ): Mapping[EveObject])
+    }
   }
 
   implicit object QuantityObjectWriter extends Writer[QuantityObject] {
     override def write(o: QuantityObject) =
-      Map(
-        CommonKey.Class -> QuantityObjectType.getName,
-        QuantityObjectKey.Value -> o.amount,
-        QuantityObjectKey.Type -> o.unitType.name()
-      )
+      NominalObjectWriter.write(o) ++
+        (Map(
+          CommonKey.Class -> QuantityObjectType.getName,
+          QuantityObjectKey.Value -> o.amount,
+          QuantityObjectKey.Type -> o.unitType.name()
+        ): Mapping[EveObject])
   }
 
   implicit object PhoneNumberWriter extends Writer[PhoneNumberObject] {

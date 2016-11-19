@@ -56,7 +56,7 @@ object ValueMatcher {
     case s: String => StringValueMatcher(s)
     case a: Array[_] => arrayToValueMatcher(a)
     case n: Number => NumberValueMatcher(n)
-    case m: Map[String, _] => ObjectValueMatcher(m.map { case (key, value) => (key -> apply(value)) })
+    case m: Map[_, _] => ObjectValueMatcher(m.map { case (key, value) => (key.toString -> apply(value)) })
     case null => NullValueMatcher
     case _ => UndefinedValueMatcher
   }
