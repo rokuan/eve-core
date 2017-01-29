@@ -1,16 +1,16 @@
 package com.ideal.evecore.universe.execution
 
-import java.util.{TimerTask, Date, Timer}
+import java.util.{Date, Timer, TimerTask}
 
-import com.ideal.evecore.interpreter.{EveObjectList, EveTimeObject, EveDateObject, EveObject}
+import com.ideal.evecore.interpreter._
 import com.ideal.evecore.universe.World
 import com.ideal.evecore.universe.receiver.ObjectMessage
 import com.ideal.evecore.universe.route.ObjectValueSource
 
 /**
- * Created by chris on 03/11/2016.
- */
-object TaskPool {
+  * Created by Christophe on 28/12/2016.
+  */
+class TaskHandler(private val world: World) {
   val timer = new Timer()
 
   def scheduleDelayedTask(time: EveObject, o: ObjectValueSource) = {
@@ -42,5 +42,5 @@ object TaskPool {
     }
   }
 
-  private def execute(o: ObjectValueSource) = World.findReceiver(o).map(_.handleMessage(ObjectMessage(o)))
+  private def execute(o: ObjectValueSource) = world.findReceiver(o).map(_.handleMessage(ObjectMessage(o)))
 }

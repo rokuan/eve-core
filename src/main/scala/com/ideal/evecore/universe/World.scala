@@ -6,11 +6,17 @@ import com.ideal.evecore.universe.route.{ReceiverAutomaton, ObjectValueSource}
 /**
  * Created by Christophe on 14/09/2016.
  */
-object World {
+trait World {
+  def registerReceiver(receiver: Receiver): Unit
+  def unregisterReceiver(receiver: Receiver): Unit
+  def findReceiver(o: ObjectValueSource): Option[Receiver]
+}
+
+class MinimalWorld extends World {
   private val receivers = collection.mutable.Map[String, Receiver]()
   private val automaton = new ReceiverAutomaton
 
-  def registerReceiver(receiver: Receiver): Unit = {
+  override def registerReceiver(receiver: Receiver): Unit = {
     val name = receiver.getReceiverName()
     receivers.get(name).map { r =>
       receivers.remove(name)
@@ -22,12 +28,12 @@ object World {
     receiver.initReceiver()
   }
 
-  def unregisterReceiver(receiver: Receiver): Unit = {
+  override def unregisterReceiver(receiver: Receiver): Unit = {
     receivers.remove(receiver.getReceiverName()).map { r =>
       automaton.remove(r)
       r.destroyReceiver()
     }
   }
 
-  def findReceiver(o: ObjectValueSource): Option[Receiver] = automaton.find(o)
+  override def findReceiver(o: ObjectValueSource): Option[Receiver] = automaton.find(o)
 }

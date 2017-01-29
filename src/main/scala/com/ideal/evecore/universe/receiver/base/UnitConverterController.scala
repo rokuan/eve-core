@@ -5,7 +5,7 @@ import com.ideal.evecore.interpreter.{EveNumberObject, EveObject, EveStringObjec
 import com.ideal.evecore.io._
 import com.ideal.evecore.universe.receiver.{Message, ObjectMessage, Receiver}
 import com.ideal.evecore.universe.route.ObjectValueSource
-import com.ideal.evecore.universe.{ObjectValueMatcher, OrValueMatcher, StringValueMatcher, ValueMatcher}
+import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
 import com.rokuan.calliopecore.sentence.structure.data.way.WayAdverbial
