@@ -23,8 +23,8 @@ import scala.util.{Failure, Success, Try}
  */
 trait Evaluator[Q] {
   protected val context: Context[Q]
-  protected val storage: Storage[Q]
   protected val taskHandler: TaskHandler
+  protected val history: History
 
   def eval(obj: InterpretationObject): Try[EveObject] = {
     obj match {
@@ -190,8 +190,41 @@ trait Evaluator[Q] {
   def findNamedPlace(place: NamedPlaceObject): Try[EveObject]
   def findAdditionalDataByCode(code: String): Try[EveObject]
 
-  def set(left: INominalObject, field: String, value: INominalObject) = { /* TODO */ }
-  def set(left: INominalObject, value: INominalObject) = { /* TODO */ }
+  def getCommonSuperTypes(os: List[EveObject]): String
+
+  private def set(source: EveObject, field: String, value: EveObject): Unit = {
+    source match {
+      case eso: EveStructuredObject => eso.set(field, value)
+      case eol: EveObjectList => eol.a.collect {
+        case eso: EveStructuredObject => eso.set(field, value)
+      }
+      case _ =>
+    }
+  }
+
+  def set(left: INominalObject, field: String, value: INominalObject): Unit = {
+    for {
+      source <- findObject(left)
+      target <- findObject(value)
+    } yield {
+      set(source, field, target)
+    }
+  }
+
+  def set(left: INominalObject, value: INominalObject): Unit = {
+    for {
+      source <- findObject(left)
+      target <- findObject(value)
+      field <- Option(target).collect {
+        case eso: EveStructuredObject => List(eso)
+        case eol: EveObjectList if eol.a.count(_.isInstanceOf[EveStructuredObject]) > 0 =>
+          eol.a.filter(_.isInstanceOf[EveStructuredObject]).toList
+      }.map(getCommonSuperTypes)
+    } yield {
+      set(source, field, target)
+    }
+  }
+
   def delete(left: INominalObject, field: String, value: INominalObject) = { /* TODO */ }
   def delete(left: INominalObject, value: INominalObject) = { /* TODO */ }
 }

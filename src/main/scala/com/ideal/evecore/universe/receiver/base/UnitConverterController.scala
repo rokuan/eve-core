@@ -1,7 +1,7 @@
 package com.ideal.evecore.universe.receiver.base
 
 import com.ideal.evecore.common.Mapping.Mapping
-import com.ideal.evecore.interpreter.{EveNumberObject, EveObject, EveStringObject, EveStructuredObject}
+import com.ideal.evecore.interpreter._
 import com.ideal.evecore.io._
 import com.ideal.evecore.universe.receiver.{Message, ObjectMessage, Receiver}
 import com.ideal.evecore.universe.route.ObjectValueSource
@@ -34,11 +34,11 @@ class UnitConverterController extends Receiver {
     case objectMessage: ObjectMessage =>
       val srcValue = Try {
         val quantityObject: EveStructuredObject = objectMessage.obj.o(InterpretationObjectKey.What).asInstanceOf[ObjectValueSource]
-        (quantityObject.o(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, quantityObject.o(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)
+        (quantityObject(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, quantityObject(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)
       }.map { case (v: Number, t: String) => (v, UnitType.valueOf(t)) }
       val destUnit = Try {
         val unitObject: EveStructuredObject = objectMessage.obj.o(InterpretationObjectKey.How).asInstanceOf[ObjectValueSource]
-        unitObject.o(UnitObjectKey.Type).asInstanceOf[EveStringObject].s
+        unitObject(UnitObjectKey.Type).asInstanceOf[EveStringObject].s
       }.map(UnitType.valueOf(_))
 
       for {
@@ -49,12 +49,12 @@ class UnitConverterController extends Receiver {
           val quantityObject = new QuantityObject
           quantityObject.amount = timeConverter(value, fromUnit, toUnit).doubleValue()
           quantityObject.unitType = toUnit
-          EveStructuredObject(Writer.write(quantityObject))
+          EveMappingObject(Writer.write(quantityObject))
         } else if(isDistanceUnitType(fromUnit) && isDistanceUnitType(toUnit)) {
           val quantityObject = new QuantityObject
           quantityObject.amount = distanceConverter(value, fromUnit, toUnit).doubleValue()
           quantityObject.unitType = toUnit
-          EveStructuredObject(Writer.write(quantityObject))
+          EveMappingObject(Writer.write(quantityObject))
         } else {
           throw new Exception("Unable to convert this value. Maybe those are two incompatible units")
         }

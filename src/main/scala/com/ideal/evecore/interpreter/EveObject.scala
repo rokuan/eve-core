@@ -23,7 +23,7 @@ object EveObject {
   implicit def booleanToEveObject(b: Boolean): EveBooleanObject = EveBooleanObject(b)
   implicit def dateToEveObject(d: Date): EveDateObject = EveDateObject(d)
   implicit def arrayToEveObject(a: Array[EveObject]): EveObjectList = EveObjectList(a)
-  implicit def mapToEveObject(m: Mapping[EveObject]): EveStructuredObject = EveStructuredObject(m)
+  implicit def mapToEveObject(m: Mapping[EveObject]): EveMappingObject = EveMappingObject(m)
   implicit def optionToEveObject(o: Option[_]): EveObject = o.map(apply).orNull
 
   def apply(a: Any): EveObject = a match {
@@ -34,7 +34,7 @@ object EveObject {
     case b: Boolean => b
     case d: Date => d
     case a: Array[_] => EveObjectList(a.map(apply))
-    case m: Map[_, _] => EveStructuredObject(m.map { case (k, o) => (k.toString -> apply(o)) })
+    case m: Map[_, _] => EveMappingObject(m.map { case (k, o) => (k.toString -> apply(o)) })
     case o: Option[_] => o
     case o: EveObject => o
   }
@@ -56,9 +56,24 @@ case class EveDateObject(d: Date) extends EveObject {
 }
 case class EveTimeObject(t: ITimeObject) extends EveObject
 case class EvePlaceObject(p: IPlaceObject) extends EveObject
-case class EveStructuredObject(o: Mapping[EveObject]) extends EveObject
 case class EveObjectList(a: Seq[EveObject]) extends EveObject {
   override def toString() = a.mkString(", ")
+}
+
+trait EveStructuredObject extends EveObject {
+  def get(field: String): Option[EveObject]
+  def getState(state: String): Option[String]
+  def set(field: String, value: EveObject): Unit
+  def setState(state: String, value: String): Unit
+  def apply(field: String): EveObject
+}
+
+case class EveMappingObject(o: Mapping[EveObject]) extends EveStructuredObject {
+  override def get(field: String): Option[EveObject] = o.get(field)
+  override def set(field: String, value: EveObject): Unit = {}
+  override def apply(field: String): EveObject = o(field)
+  override def getState(state: String): Option[String] = Option.empty[String]
+  override def setState(state: String, value: String): Unit = {}
 }
 
 case object NoneObject extends EveObject

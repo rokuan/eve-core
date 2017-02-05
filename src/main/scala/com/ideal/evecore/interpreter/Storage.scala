@@ -1,13 +1,8 @@
 package com.ideal.evecore.interpreter
 
-import com.rokuan.calliopecore.sentence.structure.content.{ITimeObject, IWayObject, INominalObject}
-import com.rokuan.calliopecore.sentence.structure.data.nominal._
-import com.rokuan.calliopecore.sentence.structure.data.place.{PlaceObject, NamedPlaceObject, LocationObject, AdditionalPlace}
-import com.rokuan.calliopecore.sentence.structure.data.time.{TimePeriodObject, DayPartObject, RelativeTimeObject, SingleTimeObject}
-import com.rokuan.calliopecore.sentence.structure.data.time.TimeAdverbial.DateDefinition
-import com.rokuan.calliopecore.sentence.structure.data.way.TransportObject
+import com.rokuan.calliopecore.sentence.structure.content.INominalObject
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
 
 /**
   * Created by Christophe on 15/07/2016.

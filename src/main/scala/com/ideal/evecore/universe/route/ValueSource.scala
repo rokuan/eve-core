@@ -61,7 +61,7 @@ object ValueSourceConverters {
     case EveStringObject(s) => StringValueSource(s)
     case EveNumberObject(n) => NumberValueSource(n)
     case EveBooleanObject(b) => BooleanValueSource(b)
-    case EveStructuredObject(o) => ObjectValueSource(o.map { case (k, eo) => (k -> eveObjectToValueSource(eo)) }.toMap)
+    case EveMappingObject(o) => ObjectValueSource(o.map { case (k, eo) => (k -> eveObjectToValueSource(eo)) }.toMap)
     case EveObjectList(os) => ArrayValueSource(os.map(eveObjectToValueSource(_)).toArray)
     case null => NullValueSource
   }
@@ -84,8 +84,8 @@ object ValueSourceConversions {
   implicit def stringValueSourceToEveStringObject(v: StringValueSource): EveStringObject = v.s
   implicit def numberValueSourceToEveNumberObject(n: NumberValueSource): EveNumberObject = n.n
   implicit def booleanValueSourceToEveBooleanObject(b: BooleanValueSource): EveBooleanObject = b.b
-  implicit def objectValueSourceToEveStructuredObject(o: ObjectValueSource): EveStructuredObject =
-    EveStructuredObject(o.o.map { case (k, v) => (k -> valueSourceToEveObject(v))})
+  implicit def objectValueSourceToEveStructuredObject(o: ObjectValueSource): EveMappingObject =
+    EveMappingObject(o.o.map { case (k, v) => (k -> valueSourceToEveObject(v))})
   implicit def arrayValueSourceToEveObjectList(a: ArrayValueSource): EveObjectList =
     EveObjectList(a.a.map(valueSourceToEveObject))
 }
