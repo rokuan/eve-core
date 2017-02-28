@@ -19,10 +19,10 @@ import Evaluator._
 import scala.util.{Failure, Success, Try}
 
 /**
- * Created by Christophe on 20/09/2016.
- */
-trait Evaluator[Q] {
-  protected val context: Context[Q]
+  * Created by Christophe on 20/09/2016.
+  */
+trait Evaluator {
+  protected val context: Context
   protected val taskHandler: TaskHandler
   protected val history: History
 
@@ -82,12 +82,16 @@ trait Evaluator[Q] {
     import com.ideal.evecore.universe.route.ValueSourceConverters._
 
     val actionType = order.getAction.getMainAction.getAction
+    val subject = findSubject(order.getSubject)
+    val what = findObject(order.getDirectObject)
+    val how = findWay(order.getWayAdverbial)
     val when = findTime(order.getTimeAdverbial)
+    val target = findObject(order.getTarget)
 
-    val values = List[(String, Try[EveObject])]((Subject, findSubject(order.getSubject)),
-    (What, findObject(order.getDirectObject)),
-      (How, findWay(order.getWayAdverbial)),
-      (To, findObject(order.getTarget)))
+    val values = List[(String, Try[EveObject])]((Subject, subject),
+      (What, what),
+      (How, how),
+      (To, target))
 
     val requestObject: ObjectValueSource = values.collect {
       case (k, Success(v)) => (k -> (v: ValueSource))
@@ -213,8 +217,8 @@ trait Evaluator[Q] {
 
   def set(left: INominalObject, value: INominalObject): Unit = {
     for {
-      source <- findObject(left)
-      target <- findObject(value)
+      source <- findObject(left).toOption
+      target <- findObject(value).toOption
       field <- Option(target).collect {
         case eso: EveStructuredObject => List(eso)
         case eol: EveObjectList if eol.a.count(_.isInstanceOf[EveStructuredObject]) > 0 =>
