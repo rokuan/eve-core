@@ -4,6 +4,7 @@ import java.text.DateFormat
 import java.util.Date
 
 import com.ideal.evecore.common.Mapping.Mapping
+import com.ideal.evecore.io.{CommonKey, Writer}
 import com.rokuan.calliopecore.sentence.structure.content.{IPlaceObject, ITimeObject}
 
 /**
@@ -17,6 +18,9 @@ object EveObject {
   val DateResultType = classOf[EveTimeObject]
   val PlaceResultType = classOf[EvePlaceObject]
 
+  val TypeKey = "__eve_type"
+  val Value = "__eve_value"
+
   implicit def stringToEveObject(s: String): EveStringObject = EveStringObject(s)
   implicit def doubleToEveObject(d: Double): EveNumberObject = EveNumberObject(d)
   implicit def numberToEveObject(n: Number): EveNumberObject = EveNumberObject(n)
@@ -25,6 +29,27 @@ object EveObject {
   implicit def arrayToEveObject(a: Array[EveObject]): EveObjectList = EveObjectList(a)
   implicit def mapToEveObject(m: Mapping[EveObject]): EveMappingObject = EveMappingObject(m)
   implicit def optionToEveObject(o: Option[_]): EveObject = o.map(apply).orNull
+
+  implicit def eveStringObjectToEveStructuredObject(s: EveStringObject): EveStructuredObject = EveMappingObject(Map(
+    TypeKey -> "text",
+    CommonKey.Class -> StringResultType.getName,
+    Value -> s
+  ))
+  implicit def eveNumberObjectToEveStructuredObject(n: EveNumberObject): EveStructuredObject = EveMappingObject(Map(
+    TypeKey -> "number",
+    CommonKey.Class -> NumberResultType.getName,
+    Value -> n
+  ))
+  implicit def eveDateObjectToEveStructuredObject(d: EveDateObject): EveStructuredObject = EveMappingObject(Map(
+    TypeKey -> "date",
+    CommonKey.Class -> DateResultType.getName,
+    Value -> d
+  ))
+  implicit def eveBooleanObjectToEveStructuredObject(b: EveBooleanObject): EveStructuredObject = EveMappingObject(Map(
+    TypeKey -> "boolean",
+    CommonKey.Class -> BooleanResultType.getName,
+    Value -> b
+  ))
 
   def apply(a: Any): EveObject = a match {
     case null => null
@@ -61,6 +86,7 @@ case class EveObjectList(a: Seq[EveObject]) extends EveObject {
 }
 
 trait EveStructuredObject extends EveObject {
+  def getType(): String
   def get(field: String): Option[EveObject]
   def getState(state: String): Option[String]
   def set(field: String, value: EveObject): Unit
@@ -74,6 +100,8 @@ case class EveMappingObject(o: Mapping[EveObject]) extends EveStructuredObject {
   override def apply(field: String): EveObject = o(field)
   override def getState(state: String): Option[String] = Option.empty[String]
   override def setState(state: String, value: String): Unit = {}
+
+  override def getType(): String = get(EveObject.TypeKey).collect { case s: EveStringObject => s.s }.getOrElse("")
 }
 
 case object NoneObject extends EveObject

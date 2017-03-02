@@ -14,6 +14,7 @@ class TaskHandler(private val world: World) {
   val timer = new Timer()
 
   def scheduleDelayedTask(time: EveObject, o: ObjectValueSource) = {
+    val executeFunc: ObjectValueSource => _ = execute
     time match {
       case EveDateObject(d) => scheduleFixedDateTask(d, o)
       case EveTimeObject(t) => // TODO: create an event-based system around ITimeObject
@@ -21,6 +22,8 @@ class TaskHandler(private val world: World) {
       case _ =>
     }
   }
+
+  def scheduleDelayedTask(time: EveObject, what: EveObject)
 
   def scheduleFixedDateTask(d: Date, o: ObjectValueSource) = {
     val task = new TimerTask {
@@ -42,5 +45,7 @@ class TaskHandler(private val world: World) {
     }
   }
 
-  private def execute(o: ObjectValueSource) = world.findReceiver(o).map(_.handleMessage(ObjectMessage(o)))
+  private def execute(o: ObjectValueSource) = world.findReceiver(o)
+    .map(_.handleMessage(ObjectMessage(o)))
+    .getOrElse()
 }

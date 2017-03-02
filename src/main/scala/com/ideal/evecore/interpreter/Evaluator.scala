@@ -19,8 +19,8 @@ import Evaluator._
 import scala.util.{Failure, Success, Try}
 
 /**
-  * Created by Christophe on 20/09/2016.
-  */
+ * Created by Christophe on 20/09/2016.
+ */
 trait Evaluator {
   protected val context: Context
   protected val taskHandler: TaskHandler
@@ -81,27 +81,36 @@ trait Evaluator {
     import com.ideal.evecore.io.InterpretationObjectKey._
     import com.ideal.evecore.universe.route.ValueSourceConverters._
 
-    val actionType = order.getAction.getMainAction.getAction
+    val action = order.getAction.getMainAction
+    val actionType = action.getAction
     val subject = findSubject(order.getSubject)
     val what = findObject(order.getDirectObject)
     val how = findWay(order.getWayAdverbial)
     val when = findTime(order.getTimeAdverbial)
     val target = findObject(order.getTarget)
 
-    val values = List[(String, Try[EveObject])]((Subject, subject),
-      (What, what),
-      (How, how),
-      (To, target))
+    if(action.isStateBound){
+      for {
+        time <- when
+        target <- what
+      } yield {
+        taskHandler.scheduleDelayedTask(time, target)
+      }
+    } else {
+      val values = List[(String, Try[EveObject])](
+        (Subject, subject),
+        (What, what),
+        (How, how),
+        (To, target)
+      )
 
-    val requestObject: ObjectValueSource = values.collect {
-      case (k, Success(v)) => (k -> (v: ValueSource))
-    }.foldLeft[Map[String, ValueSource]](Map[String, ValueSource](Action -> actionType.name())){
-      case (acc, p) => acc + p
-    }
+      val requestObject: ObjectValueSource = values.collect { case (k, Success(v)) => (k -> (v: ValueSource)) }
+      .foldLeft[Map[String, ValueSource]](Map[String, ValueSource](Action -> actionType.name())){ case (acc, p) => acc + p }
 
-    when.map { time =>
-      taskHandler.scheduleDelayedTask(time, requestObject)
-      NoneObject
+      when.map { time =>
+        taskHandler.scheduleDelayedTask(time, requestObject)
+        NoneObject
+      }
     }
   }
 

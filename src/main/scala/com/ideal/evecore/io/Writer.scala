@@ -14,6 +14,8 @@ trait Writer[T] {
 }
 
 object Writer {
+  import com.ideal.evecore.interpreter.EveObject.TypeKey
+
   val LanguageObjectType = classOf[LanguageObject]
   val UnitObjectType = classOf[UnitObject]
   val QuantityObjectType = classOf[QuantityObject]
@@ -42,7 +44,7 @@ object Writer {
   implicit object LanguageObjectWriter extends Writer[LanguageObject] {
     override def write(o: LanguageObject) =
       WayObjectWriter.write(o) ++
-        (Map(
+        (Map(TypeKey -> "language",
           CommonKey.Class -> LanguageObjectType.getName,
           LanguageObjectKey.Code -> o.language.getLanguageCode
         ): Mapping[EveObject])
@@ -52,6 +54,7 @@ object Writer {
     override def write(o: UnitObject) = {
       WayObjectWriter.write(o) ++
         (Map(
+          TypeKey -> "unit",
           CommonKey.Class -> UnitObjectType.getName,
           UnitObjectKey.Type -> o.unitType.name()
         ): Mapping[EveObject])
@@ -71,6 +74,7 @@ object Writer {
   implicit object PhoneNumberWriter extends Writer[PhoneNumberObject] {
     override def write(o: PhoneNumberObject) =
       Map(
+        TypeKey -> "phone_number",
         CommonKey.Class -> PhoneNumberObjectType.getName,
         PhoneNumberObjectKey.Value -> o.number
       )
@@ -79,6 +83,7 @@ object Writer {
   implicit object TransportObjectWriter extends Writer[TransportObject] {
     override def write(o: TransportObject): Mapping[EveObject] =
       Map(
+        TypeKey -> "transport",
         CommonKey.Class -> TransportObjectType.getName,
         TransportObjectKey.Type -> o.transportType.name()
       )
@@ -86,14 +91,17 @@ object Writer {
 
   implicit object CountryWriter extends Writer[CountryObject] {
     override def write(o: CountryObject): Mapping[EveObject] =
-      Map(
-        CommonKey.Class -> (CountryObjectType.getName: EveObject)
-      ) ++ CountryInfoWriter.write(o.country)
+      CountryInfoWriter.write(o.country) ++
+        (Map(
+          TypeKey -> "country",
+          CommonKey.Class -> (CountryObjectType.getName: EveObject)
+        ): Mapping[EveObject])
   }
 
   implicit object ColorWriter extends Writer[ColorObject] {
     override def write(o: ColorObject): Mapping[EveObject] =
       Map(
+        TypeKey -> "color",
         CommonKey.Class -> ColorObjectType.getName,
         ColorObjectKey.Code -> o.color.getColorHexCode
       )
@@ -101,9 +109,11 @@ object Writer {
 
   implicit object CityWriter extends Writer[CityObject] {
     override def write(o: CityObject): Mapping[EveObject] =
-      Map(
-        CommonKey.Class -> (CityObjectType.getName: EveObject)
-      ) ++ CityInfoWriter.write(o.city)
+      CityInfoWriter.write(o.city) ++
+        (Map(
+          TypeKey -> "city",
+          CommonKey.Class -> CityObjectType.getName
+        ): Mapping[EveObject])
   }
 
   object CityInfoWriter extends Writer[ICityInfo] {
