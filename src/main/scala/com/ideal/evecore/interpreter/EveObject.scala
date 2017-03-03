@@ -7,6 +7,8 @@ import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.io.{CommonKey, Writer}
 import com.rokuan.calliopecore.sentence.structure.content.{IPlaceObject, ITimeObject}
 
+import scala.util.{Failure, Success, Try}
+
 /**
  * Created by chris on 07/09/2016.
  */
@@ -50,6 +52,13 @@ object EveObject {
     CommonKey.Class -> BooleanResultType.getName,
     Value -> b
   ))
+  implicit def eveObjectToEveStructuredObject(o: EveObject): EveStructuredObject = o match {
+    case o: EveStructuredObject => o
+    case s: EveStringObject => s
+    case n: EveNumberObject => n
+    case b: EveBooleanObject => b
+    case d: EveDateObject => d
+  }
 
   def apply(a: Any): EveObject = a match {
     case null => null
@@ -105,3 +114,26 @@ case class EveMappingObject(o: Mapping[EveObject]) extends EveStructuredObject {
 }
 
 case object NoneObject extends EveObject
+
+
+trait EveResultObject
+
+sealed case class EveSuccessObject(o: EveObject) extends EveResultObject
+sealed case class EveFailureObject(error: String) extends EveResultObject {
+  def this(e: Throwable) = this(e.getMessage)
+}
+
+object EveResultObject {
+  implicit def tryToEveResultObject(t: Try[EveObject]): EveResultObject = t match {
+    case Success(r) => EveSuccessObject(r)
+    case Failure(t) => new EveFailureObject(t)
+  }
+  implicit def flattenTryToEveResultObject(t: Try[EveResultObject]): EveResultObject = t match {
+    case Success(e) => e
+    case Failure(f) => new EveFailureObject(f)
+  }
+
+  def Ok() = EveSuccessObject(NoneObject)
+  def Ok(e: EveObject) = EveSuccessObject(e)
+  def Ko(e: Throwable) = new EveFailureObject(e)
+}

@@ -3,13 +3,11 @@ package com.ideal.evecore.universe.receiver.base
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter._
 import com.ideal.evecore.io._
-import com.ideal.evecore.universe.receiver.{Message, ObjectMessage, Receiver}
-import com.ideal.evecore.universe.route.ObjectValueSource
+import com.ideal.evecore.universe.receiver.{EveObjectMessage, Message, Receiver}
 import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
 import com.rokuan.calliopecore.sentence.structure.data.way.WayAdverbial
-import com.ideal.evecore.universe.route.ValueSourceConversions._
 import com.rokuan.calliopecore.sentence.structure.data.nominal.QuantityObject
 
 import scala.util.Try
@@ -31,16 +29,15 @@ class UnitConverterController extends Receiver {
   )
 
   override def handleMessage(message: Message): Try[EveObject] = message match {
-    case objectMessage: ObjectMessage =>
+    case EveObjectMessage(o) =>
       val srcValue = Try {
-        val quantityObject: EveStructuredObject = objectMessage.obj.o(InterpretationObjectKey.What).asInstanceOf[ObjectValueSource]
+        val quantityObject = o(InterpretationObjectKey.What).asInstanceOf[EveStructuredObject]
         (quantityObject(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, quantityObject(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)
-      }.map { case (v: Number, t: String) => (v, UnitType.valueOf(t)) }
+      }.map { case (v, t) => (v, UnitType.valueOf(t)) }
       val destUnit = Try {
-        val unitObject: EveStructuredObject = objectMessage.obj.o(InterpretationObjectKey.How).asInstanceOf[ObjectValueSource]
+        val unitObject = o(InterpretationObjectKey.How).asInstanceOf[EveStructuredObject]
         unitObject(UnitObjectKey.Type).asInstanceOf[EveStringObject].s
-      }.map(UnitType.valueOf(_))
-
+      }.map(UnitType.valueOf)
       for {
         (value, fromUnit) <- srcValue
         toUnit <- destUnit

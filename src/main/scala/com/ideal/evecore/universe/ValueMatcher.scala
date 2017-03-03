@@ -1,47 +1,56 @@
 package com.ideal.evecore.universe
 
-import com.ideal.evecore.universe.route.{ObjectValueSource, ValueSource}
+import com.ideal.evecore.interpreter._
 
 /**
  * Created by Christophe on 14/09/2016.
  */
 sealed trait ValueMatcher {
-  def matches(v: ValueSource): Boolean
+  def matches(v: EveObject): Boolean
 }
 
 case class StringValueMatcher(s: String) extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = v.isString() && v.getString() == s
+  override def matches(v: EveObject): Boolean = v match {
+    case EveStringObject(value) if value == s => true
+    case _ => false
+  }
 }
 
 case class NumberValueMatcher(n: Number) extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = v.isNumber() && v.getNumber() == n
+  override def matches(v: EveObject): Boolean = v match {
+    case EveNumberObject(value) if value == n => true
+    case _ => false
+  }
 }
 
 case object AnyValueMatcher extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = true
+  override def matches(v: EveObject): Boolean = true
 }
 
 case class OrValueMatcher(a: Array[ValueMatcher]) extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = a.exists(_.matches(v))
+  override def matches(v: EveObject): Boolean = a.exists(_.matches(v))
 }
 
 case class BooleanValueMatcher(b: Boolean) extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = v.isBoolean() && v.getBoolean() == b
+  override def matches(v: EveObject): Boolean = v match {
+    case EveBooleanObject(value) if value == b => true
+    case _ => false
+  }
 }
 
 case object NullValueMatcher extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = v.isNull()
+  override def matches(v: EveObject): Boolean = v == null
 }
 
 case class ObjectValueMatcher(m: Map[String, ValueMatcher]) extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = v match {
-    case ObjectValueSource(mappings) => m.forall { case (field, matcher) => mappings.contains(field) && matcher.matches(mappings(field)) }
+  override def matches(v: EveObject): Boolean = v match {
+    case o: EveStructuredObject => m.forall { case (field, matcher) => o.get(field).map(matcher.matches).getOrElse(false) }
     case _ => false
   }
 }
 
 case object UndefinedValueMatcher extends ValueMatcher {
-  override def matches(v: ValueSource): Boolean = false
+  override def matches(v: EveObject): Boolean = false
 }
 
 object ValueMatcher {

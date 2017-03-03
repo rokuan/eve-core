@@ -1,7 +1,8 @@
 package com.ideal.evecore.universe
 
+import com.ideal.evecore.interpreter.EveStructuredObject
 import com.ideal.evecore.universe.receiver.Receiver
-import com.ideal.evecore.universe.route.{ReceiverAutomaton, ObjectValueSource}
+import com.ideal.evecore.universe.route.ReceiverAutomaton
 
 /**
  * Created by Christophe on 14/09/2016.
@@ -9,7 +10,8 @@ import com.ideal.evecore.universe.route.{ReceiverAutomaton, ObjectValueSource}
 trait World {
   def registerReceiver(receiver: Receiver): Unit
   def unregisterReceiver(receiver: Receiver): Unit
-  def findReceiver(o: ObjectValueSource): Option[Receiver]
+  //def findReceiver(o: ObjectValueSource): Option[Receiver]
+  def findReceiver(o: EveStructuredObject): Option[Receiver]
 }
 
 class MinimalWorld extends World {
@@ -35,5 +37,6 @@ class MinimalWorld extends World {
     }
   }
 
-  override def findReceiver(o: ObjectValueSource): Option[Receiver] = automaton.find(o)
+  //override def findReceiver(o: ObjectValueSource): Option[Receiver] = automaton.find(o)
+  override def findReceiver(o: EveStructuredObject): Option[Receiver] = automaton.find(o)
 }

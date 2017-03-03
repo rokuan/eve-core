@@ -4,7 +4,6 @@ import java.util.Calendar
 
 import com.ideal.evecore.io.Writer
 import com.ideal.evecore.universe.execution.TaskHandler
-import com.ideal.evecore.universe.route.{ObjectValueSource, ValueSource}
 import com.rokuan.calliopecore.sentence.{ActionObject, IPronoun}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.content.{INominalObject, ITimeObject, IWayObject}
@@ -26,7 +25,7 @@ trait Evaluator {
   protected val taskHandler: TaskHandler
   protected val history: History
 
-  def eval(obj: InterpretationObject): Try[EveObject] = {
+  def eval(obj: InterpretationObject): EveResultObject = {
     obj match {
       case question: QuestionObject => evalQuestion(question)
       case affirmation: AffirmationObject => evalAffirmation(affirmation)
@@ -77,9 +76,8 @@ trait Evaluator {
     }
   }
 
-  protected def evalOrder(order: OrderObject) = {
+  protected def evalOrder(order: OrderObject): EveResultObject = {
     import com.ideal.evecore.io.InterpretationObjectKey._
-    import com.ideal.evecore.universe.route.ValueSourceConverters._
 
     val action = order.getAction.getMainAction
     val actionType = action.getAction
@@ -94,7 +92,7 @@ trait Evaluator {
         time <- when
         target <- what
       } yield {
-        taskHandler.scheduleDelayedTask(time, target)
+        taskHandler.scheduleDelayedStateTask(time, action, target)
       }
     } else {
       val values = List[(String, Try[EveObject])](
@@ -104,13 +102,14 @@ trait Evaluator {
         (To, target)
       )
 
-      val requestObject: ObjectValueSource = values.collect { case (k, Success(v)) => (k -> (v: ValueSource)) }
+      /*val requestObject: ObjectValueSource = values.collect { case (k, Success(v)) => (k -> (v: ValueSource)) }
       .foldLeft[Map[String, ValueSource]](Map[String, ValueSource](Action -> actionType.name())){ case (acc, p) => acc + p }
 
-      when.map { time =>
-        taskHandler.scheduleDelayedTask(time, requestObject)
-        NoneObject
-      }
+      when.map(taskHandler.scheduleDelayedTask(_, requestObject))*/
+      val requestObject: EveStructuredObject = values.collect {
+        case (k, Success(v)) => (k -> v)
+      }.foldLeft[Map[String, EveObject]](Map[String, EveObject](Action -> actionType.name())){ case (acc, p) => acc + p }
+      when.map(taskHandler.scheduleDelayedTask(_, requestObject))
     }
   }
 
