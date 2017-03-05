@@ -100,7 +100,7 @@ trait EveStructuredObject extends EveObject {
   def getState(state: String): Option[String]
   def set(field: String, value: EveObject): Unit
   def setState(state: String, value: String): Unit
-  def apply(field: String): EveObject
+  def apply(field: String): EveObject = get(field).orNull
 }
 
 case class EveMappingObject(o: Mapping[EveObject]) extends EveStructuredObject {
