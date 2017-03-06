@@ -7,11 +7,22 @@ import com.ideal.evecore.interpreter.{Context, EveObject}
 /**
   * Created by Christophe on 05/03/2017.
   */
-class RemoteContext(val socket: Socket) extends Context {
-  val os = socket.getOutputStream
-  val is = socket.getInputStream
+class RemoteContext(val socket: Socket) extends Context with StreamUtils {
+  import RemoteContextMessage._
 
   override def findItemsOfType(t: String): Option[EveObject] = {
-    None // TODO
+    writeCommand(FindItemsOfType)
+    writeValue(t)
+    readResultValue[EveObject]
   }
+
+  protected def writeCommand(cmd: String) = {
+    os.write(cmd.getBytes)
+    os.flush()
+  }
+}
+
+object RemoteContextMessage {
+  val FindItemsOfType = "FTYP"
+  val ObjectRequest = "ORQT"
 }
