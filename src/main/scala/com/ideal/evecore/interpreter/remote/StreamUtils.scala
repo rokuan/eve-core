@@ -22,6 +22,11 @@ trait StreamUtils {
 
   implicit val resultConverter = new EveObjectResultConverter(socket)
 
+  protected def writeValue(b: Boolean) = {
+    os.write(if(b){ 1 } else { 0 })
+    os.flush()
+  }
+
   protected def writeValue(s: String) = {
     writeSize(s.length)
     os.write(s.getBytes)
@@ -72,6 +77,8 @@ trait StreamUtils {
 
     buffer.toString()
   }
+
+  protected def readTest(): Boolean = (is.read() != 0)
 
   protected def readResultValue[T >: Null](implicit reader: ResultReader[T]): Option[T] = reader.readFrom(is)
   protected def writeResultValue[T >: Null](v: Option[T])(implicit writer: ResultWriter[T]): Unit = writer.writeTo(os, v)

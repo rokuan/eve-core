@@ -44,7 +44,7 @@ case object NullValueMatcher extends ValueMatcher {
 
 case class ObjectValueMatcher(m: Map[String, ValueMatcher]) extends ValueMatcher {
   override def matches(v: EveObject): Boolean = v match {
-    case o: EveStructuredObject => m.forall { case (field, matcher) => o.get(field).map(matcher.matches).getOrElse(false) }
+    case o: EveStructuredObject => m.forall { case (field, matcher) => o.has(field) && matcher.matches(o(field)) }
     case _ => false
   }
 }

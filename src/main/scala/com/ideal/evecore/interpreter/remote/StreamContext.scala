@@ -39,6 +39,9 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
                     case GetField => getObjectField(o)
                     case GetState => getObjectState(o)
                     case SetState => setObjectState(o)
+                    case HasField => objectHasField(o)
+                    case HasState => objectHasState(o)
+                    case _ =>
                   }
                 }
               }
@@ -74,6 +77,16 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
     val state = readValue()
     val value = readValue()
     o.setState(state, value)
+  }
+
+  private final def objectHasField(o: EveStructuredObject) = {
+    val field = readValue()
+    writeValue(o.has(field))
+  }
+
+  private final def objectHasState(o: EveStructuredObject) = {
+    val state = readValue()
+    writeValue(o.hasState(state))
   }
 
   private def readCommand(): String = {

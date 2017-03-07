@@ -47,12 +47,26 @@ class RemoteEveStructuredObject(private val objectId: String, protected val sock
     os.write(cmd.getBytes)
     os.flush()
   }
+
+  override def has(field: String): Boolean = {
+    writeCommand(HasField)
+    writeValue(field)
+    readTest()
+  }
+
+  override def hasState(state: String): Boolean = {
+    writeCommand(HasState)
+    writeValue(state)
+    readTest()
+  }
 }
 
 object RemoteEveStructuredObjectMessage {
   val GetType = "GTYP"
   val SetField = "SFLD"
   val GetField = "GFLD"
+  val HasField = "HFLD"
   val GetState = "GSTE"
   val SetState = "SSTE"
+  val HasState = "HSTE"
 }

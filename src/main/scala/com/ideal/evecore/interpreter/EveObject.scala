@@ -96,6 +96,8 @@ case class EveObjectList(a: Seq[EveObject]) extends EveObject {
 
 trait EveStructuredObject extends EveObject {
   def getType(): String
+  def has(field: String): Boolean
+  def hasState(state: String): Boolean
   def get(field: String): Option[EveObject]
   def getState(state: String): Option[String]
   def set(field: String, value: EveObject): Unit
@@ -109,6 +111,8 @@ case class EveMappingObject(o: Mapping[EveObject]) extends EveStructuredObject {
   override def apply(field: String): EveObject = o(field)
   override def getState(state: String): Option[String] = Option.empty[String]
   override def setState(state: String, value: String): Unit = {}
+  override def has(field: String): Boolean = o.contains(field)
+  override def hasState(state: String): Boolean = false
 
   override def getType(): String = get(EveObject.TypeKey).collect { case s: EveStringObject => s.s }.getOrElse("")
 }
