@@ -3,21 +3,13 @@ package com.ideal.evecore.interpreter.remote
 import java.net.Socket
 
 import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject}
-import com.ideal.evecore.io.message.Readers.EveObjectResultReader
-import com.ideal.evecore.io.message.ResultReader
-import com.ideal.evecore.io.message.Readers._
-import org.json4s.JValue
+import com.ideal.evecore.io.Readers._
 
 /**
   * Created by Christophe on 05/03/2017.
   */
-class RemoteEveStructuredObject(private val objectId: String, protected val socket: Socket) extends EveStructuredObject with ResultReader[EveObject] with StreamUtils {
+class RemoteEveStructuredObject(private val objectId: String, protected val socket: Socket) extends EveStructuredObject with StreamUtils {
   import RemoteEveStructuredObjectMessage._
-
-
-
-  /*protected val is = socket.getInputStream
-  protected val os = socket.getOutputStream*/
 
   override def getType(): String = safe {
     writeCommand(GetType)
@@ -55,8 +47,6 @@ class RemoteEveStructuredObject(private val objectId: String, protected val sock
     os.write(cmd.getBytes)
     os.flush()
   }
-
-  override def extract(o: JValue): EveObject = resultReader.extract(o)
 }
 
 object RemoteEveStructuredObjectMessage {

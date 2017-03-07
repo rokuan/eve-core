@@ -4,10 +4,12 @@ import java.io.{OutputStream, InputStream}
 import java.net.Socket
 
 import com.ideal.evecore.interpreter.EveObject
-import com.ideal.evecore.io.message.Readers.EveObjectResultReader
-import com.ideal.evecore.io.message.ResultReader
+import com.ideal.evecore.io.Readers.EveObjectResultConverter
+import com.ideal.evecore.io.message.{ResultWriter, ResultReader}
+import org.json4s.jackson.JsonMethods
 import org.json4s.native.Serialization._
-import com.ideal.evecore.io.message.Readers._
+import com.ideal.evecore.io.Readers._
+import com.ideal.evecore.common.Conversions._
 
 /**
  * Created by chris on 06/03/17.
@@ -18,7 +20,7 @@ trait StreamUtils {
   val is: InputStream = socket.getInputStream
   val os: OutputStream = socket.getOutputStream
 
-  implicit val resultReader = new EveObjectResultReader(socket)
+  implicit val resultConverter = new EveObjectResultConverter(socket)
 
   protected def writeValue(s: String) = {
     writeSize(s.length)
@@ -47,14 +49,15 @@ trait StreamUtils {
     }
   }
 
-  protected def readObject(): EveObject = { null /* TODO */ }
+  protected def readObject(): EveObject = {
+    val json = readValue()
+    resultConverter.extract(JsonMethods.parse(json))
+  }
 
   protected def readValue(): String = {
-    val source = scala.io.Source.fromInputStream(is)
     var length = readSize()
     val block = new Array[Byte](1024)
     val buffer = new StringBuilder()
-    var read = 0
 
     while(length > 0){
       val read = is.read(block)
@@ -70,14 +73,8 @@ trait StreamUtils {
     buffer.toString()
   }
 
-  protected def readResultValue[T >: Null](implicit reader: ResultReader[T]): Option[T] = {
-    val result = reader.readFrom(is)
-    if(result.success){
-      None
-    } else {
-      Some(result.value)
-    }
-  }
+  protected def readResultValue[T >: Null](implicit reader: ResultReader[T]): Option[T] = reader.readFrom(is)
+  protected def writeResultValue[T >: Null](v: Option[T])(implicit writer: ResultWriter[T]): Unit = writer.writeTo(os, v)
 
   protected final def safe[T](process: T) = socket.synchronized(process)
 }

@@ -4,6 +4,8 @@ import java.net.Socket
 
 import com.ideal.evecore.interpreter.{Context, EveObject}
 
+import scala.util.Try
+
 /**
   * Created by Christophe on 05/03/2017.
   */
