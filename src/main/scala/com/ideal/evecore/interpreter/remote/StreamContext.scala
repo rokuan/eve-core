@@ -10,11 +10,15 @@ import RemoteEveStructuredObjectMessage._
 import com.ideal.evecore.io.Readers._
 
 /**
- * Created by chris on 07/03/17.
+ * Created by Christophe on 07/03/17.
  */
 class StreamContext(protected val socket: Socket, val context: QueryContext) extends Context with StreamUtils {
   readEndlessly()
 
+  /**
+   * Reads the commands that are sent from the server
+   * @return
+   */
   private final def readEndlessly() = Try {
     val breaks = new Breaks
 
@@ -45,6 +49,8 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
                   }
                 }
               }
+              case RemoteContextMessage.Ping => // Just a ping message to ensure that the connection is still alive
+              case _ =>
             }
           }.getOrElse(breaks.break())
         }
@@ -89,6 +95,10 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
     writeValue(o.hasState(state))
   }
 
+  /**
+   * Reads a command from the server
+   * @return
+   */
   private def readCommand(): String = {
     val commandData = new Array[Byte](4)
     if(is.read(commandData) >= 0){

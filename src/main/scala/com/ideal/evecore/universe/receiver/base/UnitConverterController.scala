@@ -9,6 +9,7 @@ import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
 import com.rokuan.calliopecore.sentence.structure.data.way.WayAdverbial
 import com.rokuan.calliopecore.sentence.structure.data.nominal.QuantityObject
+import EveObjectDSL._
 
 import scala.util.Try
 
@@ -25,19 +26,18 @@ class UnitConverterController extends Receiver {
     /*InterpretationObjectKey.What -> OrValueMatcher(
       ObjectValueMatcher(Map(NominalObjectKey.))
     ),*/
-    InterpretationObjectKey.How -> ObjectValueMatcher(Map(WayObjectKey.WayType -> WayAdverbial.WayType.UNIT.name()))
+    InterpretationObjectKey.How -> ObjectValueMatcher(WayObjectKey.WayType -> StringValueMatcher(WayAdverbial.WayType.UNIT.name()))
   )
 
   override def handleMessage(message: Message): Try[EveObject] = message match {
     case EveObjectMessage(o) =>
       val srcValue = Try {
-        val quantityObject = o(InterpretationObjectKey.What).asInstanceOf[EveStructuredObject]
-        (quantityObject(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, quantityObject(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)
+        /*val quantityObject = o(InterpretationObjectKey.What).asInstanceOf[EveStructuredObject]
+        (quantityObject(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, quantityObject(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)*/
+        val quantityObject = o \ InterpretationObjectKey.What
+        (quantityObject \ QuantityObjectKey.Value toNumber, quantityObject \ QuantityObjectKey.Type toText)
       }.map { case (v, t) => (v, UnitType.valueOf(t)) }
-      val destUnit = Try {
-        val unitObject = o(InterpretationObjectKey.How).asInstanceOf[EveStructuredObject]
-        unitObject(UnitObjectKey.Type).asInstanceOf[EveStringObject].s
-      }.map(UnitType.valueOf)
+      val destUnit = Try(o \ InterpretationObjectKey.How \ UnitObjectKey.Type toText).map(UnitType.valueOf)
       for {
         (value, fromUnit) <- srcValue
         toUnit <- destUnit
@@ -59,16 +59,33 @@ class UnitConverterController extends Receiver {
     case _ => Try(throw new Exception("Unsupported operation"))
   }
 
+  /**
+   * Checks that the unit type is a Time unit type
+   * @param unitType The unit type to test
+   * @return true if it's a Time unit type, false otherwise
+   */
   protected def isTimeUnitType(unitType: UnitType) = unitType match {
     case UnitType.MILLISECOND | UnitType.SECOND | UnitType.MINUTE | UnitType.HOUR | UnitType.DAY | UnitType.YEAR => true
     case _ => false
   }
 
+  /**
+   * Checks that the unit type is a Distance unit type
+   * @param unitType The unit type to test
+   * @return true if it's a Distance unit type, false otherwise
+   */
   protected def isDistanceUnitType(unitType: UnitType) = unitType match {
     case UnitType.MILLIMETER | UnitType.CENTIMETER | UnitType.DECIMETER | UnitType.METER | UnitType.DECAMETER | UnitType.HECTOMETER | UnitType.KILOMETER => true
     case _ => false
   }
 
+  /**
+   * Converts a time between two time units
+   * @param originalTime The original time (in fromTimeUnitType unit)
+   * @param fromTimeUnitType The original unit
+   * @param toTimeUnitType The destination unit
+   * @return The converted time in toTimeUnitType unit
+   */
   protected def timeConverter(originalTime: Number, fromTimeUnitType: UnitType, toTimeUnitType: UnitType): Number = {
     if(fromTimeUnitType == toTimeUnitType){
       originalTime
@@ -93,6 +110,13 @@ class UnitConverterController extends Receiver {
     }
   }
 
+  /**
+   * Converts a distance between two distance units
+   * @param originalDistance The original distance (in fromDistanceUnit unit)
+   * @param fromDistanceUnit The original unit
+   * @param toDistanceUnit The destination unit
+   * @return The converted distance in toDistanceUnit unit
+   */
   protected def distanceConverter(originalDistance: Number, fromDistanceUnit: UnitType, toDistanceUnit: UnitType): Number = {
     if(fromDistanceUnit == toDistanceUnit){
       originalDistance

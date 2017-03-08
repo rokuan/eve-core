@@ -40,6 +40,10 @@ class RemoteEveStructuredObject(private val objectId: String, protected val sock
     writeValue(value)
   }
 
+  /**
+   * Sends a command to the corresponding remote EveStructuredObject
+   * @param cmd
+   */
   protected def writeCommand(cmd: String) = {
     os.write(RemoteContextMessage.ObjectRequest.getBytes)
     os.flush()

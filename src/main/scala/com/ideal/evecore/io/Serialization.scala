@@ -19,7 +19,7 @@ import org.json4s.JsonAST.JValue
 import org.json4s.jackson.Serialization
 
 /**
- * Created by chris on 07/03/17.
+ * Created by Christophe on 07/03/17.
  */
 
 

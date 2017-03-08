@@ -4,7 +4,7 @@ import org.scalatest.{Matchers, FlatSpec}
 import org.json4s.jackson.JsonMethods._
 
 /**
- * Created by chris on 07/03/17.
+ * Created by Christophe on 07/03/17.
  */
 class JValueTest extends FlatSpec with Matchers {
   "This test" should "convert the string to a JString" in {

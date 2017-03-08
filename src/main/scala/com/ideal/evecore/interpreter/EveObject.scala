@@ -4,13 +4,13 @@ import java.text.DateFormat
 import java.util.Date
 
 import com.ideal.evecore.common.Mapping.Mapping
-import com.ideal.evecore.io.{CommonKey, Writer}
+import com.ideal.evecore.io.CommonKey
 import com.rokuan.calliopecore.sentence.structure.content.{IPlaceObject, ITimeObject}
 
 import scala.util.{Failure, Success, Try}
 
 /**
- * Created by chris on 07/09/2016.
+ * Created by Christophe on 07/09/2016.
  */
 object EveObject {
   val NumberResultType = classOf[EveNumberObject]
@@ -23,6 +23,11 @@ object EveObject {
   val TypeKey = "__eve_type"
   val Value = "__eve_value"
 
+  val TextType = "text"
+  val NumberType = "number"
+  val DateType = "date"
+  val BooleanType = "boolean"
+
   implicit def stringToEveObject(s: String): EveStringObject = EveStringObject(s)
   implicit def doubleToEveObject(d: Double): EveNumberObject = EveNumberObject(d)
   implicit def numberToEveObject(n: Number): EveNumberObject = EveNumberObject(n)
@@ -33,22 +38,22 @@ object EveObject {
   implicit def optionToEveObject(o: Option[_]): EveObject = o.map(apply).orNull
 
   implicit def eveStringObjectToEveStructuredObject(s: EveStringObject): EveStructuredObject = EveMappingObject(Map(
-    TypeKey -> "text",
+    TypeKey -> TextType,
     CommonKey.Class -> StringResultType.getName,
     Value -> s
   ))
   implicit def eveNumberObjectToEveStructuredObject(n: EveNumberObject): EveStructuredObject = EveMappingObject(Map(
-    TypeKey -> "number",
+    TypeKey -> NumberType,
     CommonKey.Class -> NumberResultType.getName,
     Value -> n
   ))
   implicit def eveDateObjectToEveStructuredObject(d: EveDateObject): EveStructuredObject = EveMappingObject(Map(
-    TypeKey -> "date",
+    TypeKey -> DateType,
     CommonKey.Class -> DateResultType.getName,
     Value -> d
   ))
   implicit def eveBooleanObjectToEveStructuredObject(b: EveBooleanObject): EveStructuredObject = EveMappingObject(Map(
-    TypeKey -> "boolean",
+    TypeKey -> BooleanType,
     CommonKey.Class -> BooleanResultType.getName,
     Value -> b
   ))
@@ -140,4 +145,15 @@ object EveResultObject {
   def Ok() = EveSuccessObject(NoneObject)
   def Ok(e: EveObject) = EveSuccessObject(e)
   def Ko(e: Throwable) = new EveFailureObject(e)
+}
+
+object EveObjectDSL {
+  class EveObjectPath(val o: EveObject) {
+    //def \(field: String): Option[EveObject] = Try(o.asInstanceOf[EveStructuredObject]).toOption.flatMap(_.get(field))
+    def \(field: String): EveObject = o.asInstanceOf[EveStructuredObject](field)
+    def toNumber: Number = o.asInstanceOf[EveNumberObject].n
+    def toBoolean: Boolean = o.asInstanceOf[EveBooleanObject].b
+    def toText: String = o.asInstanceOf[EveStringObject].s
+  }
+  implicit def eveObjectToPath(o: EveObject) = new EveObjectPath(o)
 }

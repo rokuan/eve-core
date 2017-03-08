@@ -12,7 +12,7 @@ import com.ideal.evecore.io.Readers._
 import com.ideal.evecore.common.Conversions._
 
 /**
- * Created by chris on 06/03/17.
+ * Created by Christophe on 06/03/17.
  */
 trait StreamUtils {
   protected val socket: Socket
