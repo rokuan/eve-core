@@ -5,7 +5,9 @@ import java.net.Socket
 
 import com.ideal.evecore.interpreter.EveObject
 import com.ideal.evecore.io.Readers.EveObjectResultConverter
-import com.ideal.evecore.io.message.{ResultWriter, ResultReader}
+import com.ideal.evecore.io.Streamers.EveObjectStreamHandler
+import com.ideal.evecore.io.{StreamWriter, StreamReader}
+import com.ideal.evecore.io.message.{Result, ResultWriter, ResultReader}
 import org.json4s.jackson.JsonMethods
 import org.json4s.native.Serialization._
 import com.ideal.evecore.io.Readers._
@@ -21,6 +23,8 @@ trait StreamUtils {
   val os: OutputStream = socket.getOutputStream
 
   implicit val resultConverter = new EveObjectResultConverter(socket)
+  implicit val resultStreamHandler = new EveObjectStreamHandler(socket)
+  implicit val messageConverter = new MessageConverter(socket)
 
   protected def writeValue(b: Boolean) = {
     os.write(if(b){ 1 } else { 0 })
@@ -80,8 +84,15 @@ trait StreamUtils {
 
   protected def readTest(): Boolean = (is.read() != 0)
 
-  protected def readResultValue[T >: Null](implicit reader: ResultReader[T]): Option[T] = reader.readFrom(is)
+  protected def readResultValue[T >: Null](implicit reader: ResultReader[T]): Result[T] = reader.readFrom(is)
   protected def writeResultValue[T >: Null](v: Option[T])(implicit writer: ResultWriter[T]): Unit = writer.writeTo(os, v)
 
+  protected def readItem[T](implicit reader: StreamReader[T]): T = reader.readFrom(is)
+  protected def writeItem[T](o: T)(implicit writer: StreamWriter[T]): Unit = writer.writeTo(os, o)
+
   protected final def safe[T](process: T) = socket.synchronized(process)
+}
+
+object StreamUtils {
+
 }

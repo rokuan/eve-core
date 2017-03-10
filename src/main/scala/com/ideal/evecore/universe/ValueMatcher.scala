@@ -47,12 +47,16 @@ case object NullValueMatcher extends ValueMatcher {
   override def matches(v: EveObject): Boolean = v == null
 }
 
-//case class ObjectValueMatcher(m: Map[String, ValueMatcher]) extends ValueMatcher {
-case class ObjectValueMatcher(m: (String, ValueMatcher)*) extends ValueMatcher {
+case class ObjectValueMatcher(m: Map[String, ValueMatcher]) extends ValueMatcher {
+//case class ObjectValueMatcher(m: (String, ValueMatcher)*) extends ValueMatcher {
   override def matches(v: EveObject): Boolean = v match {
     case o: EveStructuredObject => m.forall { case (field, matcher) => o.has(field) && matcher.matches(o(field)) }
     case _ => false
   }
+}
+
+object ObjectValueMatcher {
+  def apply(m: (String, ValueMatcher)*): ObjectValueMatcher = ObjectValueMatcher(m.toMap)
 }
 
 case object UndefinedValueMatcher extends ValueMatcher {
@@ -67,6 +71,9 @@ object ValueMatcher {
   }
   implicit def booleanToValueMatcher(b: Boolean): ValueMatcher = BooleanValueMatcher(b)
   implicit def numberToValueMatcher(n: Number): ValueMatcher = NumberValueMatcher(n)
+  implicit def doubleToValueMatcher(d: Double): ValueMatcher = NumberValueMatcher(d)
+  implicit def mapToValueMatcher(m: Map[String, ValueMatcher]) = ObjectValueMatcher(m.toSeq: _*)
+  implicit def seqToValueMatcher(vs: Seq[(String, ValueMatcher)]) = ObjectValueMatcher(vs: _*)
 
   def apply(o: Any): ValueMatcher = o match {
     case s: String if s == "*" => AnyValueMatcher

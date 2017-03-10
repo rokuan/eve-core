@@ -2,6 +2,8 @@ package com.ideal.evecore.common
 
 import com.ideal.evecore.io.message.Result
 
+import scala.util.{Failure, Success, Try}
+
 /**
  * Created by Christophe on 07/03/17.
  */
@@ -12,4 +14,14 @@ object Conversions {
   }
 
   implicit def optionToResult[T >: Null](o: Option[T]): Result[T] = o.map(Result(true, _)).getOrElse(Result(false, null))
+
+  implicit def tryToResult[T >: Null](t: Try[T]): Result[T] = t match {
+    case Success(v) => Result.Ok(v)
+    case Failure(e) => Result.Ko(e.getMessage)
+  }
+
+  implicit def resultToTry[T >: Null](r: Result[T]): Try[T] = r.success match {
+    case true => Success(r.value)
+    case _ => Failure(new Exception(r.error))
+  }
 }

@@ -3,6 +3,7 @@ package com.ideal.evecore.interpreter.remote
 import java.io.IOException
 import java.net.Socket
 
+import com.ideal.evecore.common.Conversions._
 import com.ideal.evecore.interpreter.{Context, EveObject}
 
 import scala.util.{Failure, Success, Try}

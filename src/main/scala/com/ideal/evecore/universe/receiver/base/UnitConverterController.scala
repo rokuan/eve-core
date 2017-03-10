@@ -21,7 +21,7 @@ class UnitConverterController extends Receiver {
 
   override def getReceiverName(): String = getClass.getName
 
-  override def getMappings(): Mapping[_ <: ValueMatcher] = Map(
+  override def getMappings(): Mapping[ValueMatcher] = Map(
     InterpretationObjectKey.Action -> StringValueMatcher(ActionType.CONVERT.name()),
     /*InterpretationObjectKey.What -> OrValueMatcher(
       ObjectValueMatcher(Map(NominalObjectKey.))
@@ -32,8 +32,6 @@ class UnitConverterController extends Receiver {
   override def handleMessage(message: Message): Try[EveObject] = message match {
     case EveObjectMessage(o) =>
       val srcValue = Try {
-        /*val quantityObject = o(InterpretationObjectKey.What).asInstanceOf[EveStructuredObject]
-        (quantityObject(QuantityObjectKey.Value).asInstanceOf[EveNumberObject].n, quantityObject(QuantityObjectKey.Type).asInstanceOf[EveStringObject].s)*/
         val quantityObject = o \ InterpretationObjectKey.What
         (quantityObject \ QuantityObjectKey.Value toNumber, quantityObject \ QuantityObjectKey.Type toText)
       }.map { case (v, t) => (v, UnitType.valueOf(t)) }

@@ -4,6 +4,7 @@ import java.net.Socket
 
 import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject}
 import com.ideal.evecore.io.Readers._
+import com.ideal.evecore.common.Conversions._
 
 /**
   * Created by Christophe on 05/03/2017.

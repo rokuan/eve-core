@@ -38,9 +38,10 @@ trait Receiver {
    * Returns the mapping defining the types of messages this receiver can handle
    * @return A mapping containing the definition field of this receiver
    */
-  def getMappings(): Mapping[_ <: ValueMatcher]
+  def getMappings(): Mapping[ValueMatcher]
 
   override def toString: String = getReceiverName()
+
   override def equals(obj: scala.Any): Boolean = obj match {
     case null => false
     case r: Receiver => Option(getReceiverName()).map(_.equals(r.getReceiverName())).getOrElse(false)
