@@ -1,10 +1,11 @@
 package com.ideal.evecore.io
 
 import java.net.ServerSocket
+import java.util.UUID
 
 import com.ideal.evecore.interpreter.Environment
 import com.ideal.evecore.interpreter.remote.RemoteContext
-
+import ContextServer._
 import scala.util.control.Breaks
 
 /**
@@ -12,10 +13,10 @@ import scala.util.control.Breaks
  */
 class ContextServer(protected val environment: Environment, port: Int) extends Thread {
   protected val server = new ServerSocket(port)
+  private val contextGroup = new ThreadGroup(UUID.randomUUID().toString)
 
   override def run(): Unit = {
     super.run()
-
     val breaks = new Breaks
 
     breaks.breakable {
@@ -23,18 +24,26 @@ class ContextServer(protected val environment: Environment, port: Int) extends T
         val client = server.accept()
         val context = new RemoteContext(client)
         environment.addContext(context)
-        new ContextThread(environment, context).start
+        val runnable = new Runnable {
+          override def run(): Unit = {
+            try {
+              while (!context.closeIfDown()) {
+                Thread.sleep(PingDelay)
+              }
+            } catch {
+              case _: Throwable =>
+            }
+            environment.removeContext(context)
+          }
+        }
+        new Thread(contextGroup, runnable).start()
       }
     }
   }
+
+  def close() = contextGroup.destroy()
 }
 
-class ContextThread(private val environment: Environment, private val context: RemoteContext) extends Thread {
-  override def run(): Unit = {
-    super.run()
-    while(!context.closeIfDown()){
-      Thread.sleep(300000)
-    }
-    environment.removeContext(context)
-  }
+object ContextServer {
+  val PingDelay = 300000
 }

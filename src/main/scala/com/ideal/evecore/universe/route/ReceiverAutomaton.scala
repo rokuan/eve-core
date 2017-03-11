@@ -14,6 +14,6 @@ class ReceiverAutomaton extends Automaton[EveStructuredObject, Receiver] {
   override def remove(o: Receiver): Unit = receivers -= o
 
   override def find(o: EveStructuredObject): Option[Receiver] = receivers.find { r =>
-    r.getMappings().forall { case (key, matcher) => o.get(key).map(matcher.matches).getOrElse(false) }
+    r.getMappings().forall { case (key, matcher) => o.get(key).exists(matcher.matches) }
   }
 }

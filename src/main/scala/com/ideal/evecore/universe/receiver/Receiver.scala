@@ -30,7 +30,7 @@ trait Receiver {
 
   /**
    * Retrieves this receiver's name
-   * @return
+   * @return This receiver's name
    */
   def getReceiverName(): String = getClass.getName
 
@@ -44,7 +44,7 @@ trait Receiver {
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case null => false
-    case r: Receiver => Option(getReceiverName()).map(_.equals(r.getReceiverName())).getOrElse(false)
+    case r: Receiver => Option(getReceiverName()).exists(_.equals(r.getReceiverName()))
     case _ => false
   }
 }

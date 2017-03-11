@@ -15,11 +15,20 @@ import scala.util.Try
 /**
  * Created by chris on 09/03/17.
  */
-class RemoteReceiver(protected val socket: Socket) extends Receiver with StreamUtils {
+class RemoteReceiver(protected val socket: Socket) extends Receiver with RemoteEndPoint {
   /**
    * Called to initialize this receiver
    */
   override def initReceiver(): Unit = writeCommand(InitReceiver)
+
+  /**
+    * Retrieves this receiver's name
+    * @return This receiver's name
+    */
+  override def getReceiverName(): String = {
+    writeCommand(GetReceiverName)
+    readValue()
+  }
 
   /**
    * Returns the mapping defining the types of messages this receiver can handle
@@ -46,7 +55,7 @@ class RemoteReceiver(protected val socket: Socket) extends Receiver with StreamU
    */
   override def destroyReceiver(): Unit = writeCommand(DestroyReceiver)
 
-  protected def writeCommand(cmd: String) = {
+  override protected def writeCommand(cmd: String): Unit = {
     os.write(cmd.getBytes)
     os.flush()
   }
@@ -57,4 +66,5 @@ object RemoteReceiverMessage {
   val DestroyReceiver = "DRCV"
   val HandleMessage = "HMSG"
   val GetMappings = "GMAP"
+  val GetReceiverName = "GRNM"
 }

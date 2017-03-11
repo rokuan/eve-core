@@ -2,12 +2,13 @@ package com.ideal.evecore.interpreter.remote
 
 import java.net.Socket
 
-import com.ideal.evecore.interpreter.{EveStructuredObject, QueryContext, EveObject, Context}
+import com.ideal.evecore.interpreter.{Context, EveObject, EveStructuredObject, QueryContext}
 
 import scala.util.Try
 import scala.util.control.Breaks
 import RemoteEveStructuredObjectMessage._
-import com.ideal.evecore.io.Readers._
+import com.ideal.evecore.common.Conversions._
+import com.ideal.evecore.io.Readers.StringResultConverter
 
 /**
  * Created by Christophe on 07/03/17.
@@ -49,7 +50,7 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
                   }
                 }
               }
-              case RemoteContextMessage.Ping => // Just a ping message to ensure that the connection is still alive
+              case RemoteEndPointMessage.Ping => // Just a ping message to ensure that the connection is still alive
               case _ =>
             }
           }.getOrElse(breaks.break())
@@ -76,7 +77,7 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
 
   private final def getObjectState(o: EveStructuredObject) = {
     val state = readValue()
-    writeResultValue(o.getState(state))
+    writeResultValue(o.getState(state))(StringResultConverter)
   }
 
   private final def setObjectState(o: EveStructuredObject) = {
@@ -93,19 +94,6 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
   private final def objectHasState(o: EveStructuredObject) = {
     val state = readValue()
     writeValue(o.hasState(state))
-  }
-
-  /**
-   * Reads a command from the server
-   * @return
-   */
-  private def readCommand(): String = {
-    val commandData = new Array[Byte](4)
-    if(is.read(commandData) >= 0){
-      new String(commandData)
-    } else {
-      null
-    }
   }
 
   override def findItemsOfType(t: String): Option[EveObject] = context.findItemsOfType(t)

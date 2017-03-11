@@ -1,19 +1,19 @@
 package com.ideal.evecore.io
 
-import java.io.{OutputStream, InputStream}
+import java.io.{InputStream, OutputStream}
 import java.net.Socket
 
 import com.ideal.evecore.common.Mapping
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter._
 import com.ideal.evecore.interpreter.remote.RemoteEveStructuredObject
-import com.ideal.evecore.io.Readers.{ValueMatcherConverter, EveObjectResultConverter}
-import com.ideal.evecore.io.message.{ResultWriter, ResultReader}
+import com.ideal.evecore.io.Readers.{EveObjectResultConverter, MessageConverter, ValueMatcherConverter}
+import com.ideal.evecore.io.message.{ResultReader, ResultWriter}
 import com.ideal.evecore.universe._
-import com.ideal.evecore.universe.receiver.{EveObjectMessage, ActionMessage, Message}
+import com.ideal.evecore.universe.receiver.{ActionMessage, EveObjectMessage, Message}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import org.json4s
-import org.json4s.{Serializer, NoTypeHints, DefaultFormats, CustomSerializer, Extraction}
+import org.json4s.{CustomSerializer, DefaultFormats, Extraction, NoTypeHints, Serializer}
 import org.json4s.JsonAST.JArray
 import org.json4s.JsonAST.JBool
 import org.json4s.JsonAST.JDouble
@@ -23,14 +23,11 @@ import org.json4s.JsonAST.JObject
 import org.json4s.JsonAST.JString
 import org.json4s.JsonAST.JValue
 import org.json4s.JsonDSL._
-
 import org.json4s.jackson.{JsonMethods, Serialization}
 
 /**
- * Created by Christophe on 07/03/17.
- */
-
-
+  * Created by Christophe on 07/03/17.
+  */
 object Readers {
   implicit val format = DefaultFormats
   implicit val converters = Serialization.formats(NoTypeHints)
@@ -180,10 +177,19 @@ object Streamers {
     }
   }
 
-  implicit object MessageStreamHandler extends StreamHandler[Message] {
-    override def writeTo(os: OutputStream, o: Message): Unit = ???
+  class MessageStreamHandler(val socket: Socket) extends StreamHandler[Message] {
+    implicit val converter = new MessageConverter(socket)
+    override def writeTo(os: OutputStream, o: Message): Unit = {
+      val json = converter.transform(o)
+      StringStreamHandler.writeTo(os, JsonMethods.compact(json))
+    }
 
-    override def readFrom(is: InputStream): Message = ???
+    override def readFrom(is: InputStream): Message = {
+      val json = StringStreamHandler.readFrom(is)
+      Option(json).map(JsonMethods.parse(_))
+        .map(converter.extract)
+        .orNull
+    }
   }
 
   implicit object ValueMatcherMappingStreamHandler extends StreamHandler[Mapping[ValueMatcher]] {
