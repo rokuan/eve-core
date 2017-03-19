@@ -82,3 +82,10 @@ class StreamReceiver(protected val socket: Socket, protected val receiver: Recei
     */
   override def destroyReceiver(): Unit = receiver.destroyReceiver()
 }
+
+object StreamReceiver {
+  def connect(host: String, port: Int)(receiver: Receiver): Try[StreamReceiver] = Try {
+    val socket = new Socket(host, port)
+    new StreamReceiver(socket, receiver)
+  }
+}
