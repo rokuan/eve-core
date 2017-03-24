@@ -100,6 +100,7 @@ case class EveDateObject(d: Date) extends EveObject {
 case class EveTimeObject(t: ITimeObject) extends EveObject
 case class EvePlaceObject(p: IPlaceObject) extends EveObject
 case class EveObjectList(a: Seq[EveObject]) extends EveObject {
+  def this(a: Array[EveObject]) = this(a.toSeq)
   override def toString() = a.mkString(", ")
 }
 
