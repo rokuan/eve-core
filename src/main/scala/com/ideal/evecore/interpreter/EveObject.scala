@@ -1,6 +1,6 @@
 package com.ideal.evecore.interpreter
 
-import java.text.DateFormat
+import java.text.{SimpleDateFormat, DateFormat}
 import java.util.Date
 
 import com.ideal.evecore.common.Mapping.Mapping
@@ -21,14 +21,17 @@ object EveObject {
   val PlaceResultType = classOf[EvePlaceObject]
 
   val TypeKey = "__eve_type"
-  val Value = "__eve_value"
+  val ValueKey = "__eve_value"
+  val IdKey = "__eve_id"
 
   val TextType = "text"
   val NumberType = "number"
   val DateType = "date"
   val BooleanType = "boolean"
 
-  implicit def stringToEveObject(s: String): EveStringObject = EveStringObject(s)
+  val fullDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z")
+
+  implicit def stringToEveObject(s: String): EveObject = Try(fullDateFormat.parse(s)).map(EveDateObject).getOrElse(EveStringObject(s))
   implicit def doubleToEveObject(d: Double): EveNumberObject = EveNumberObject(d)
   implicit def numberToEveObject(n: Number): EveNumberObject = EveNumberObject(n)
   implicit def booleanToEveObject(b: Boolean): EveBooleanObject = EveBooleanObject(b)
@@ -40,22 +43,22 @@ object EveObject {
   implicit def eveStringObjectToEveStructuredObject(s: EveStringObject): EveStructuredObject = EveMappingObject(Map(
     TypeKey -> TextType,
     CommonKey.Class -> StringResultType.getName,
-    Value -> s
+    ValueKey -> s
   ))
   implicit def eveNumberObjectToEveStructuredObject(n: EveNumberObject): EveStructuredObject = EveMappingObject(Map(
     TypeKey -> NumberType,
     CommonKey.Class -> NumberResultType.getName,
-    Value -> n
+    ValueKey -> n
   ))
   implicit def eveDateObjectToEveStructuredObject(d: EveDateObject): EveStructuredObject = EveMappingObject(Map(
     TypeKey -> DateType,
     CommonKey.Class -> DateResultType.getName,
-    Value -> d
+    ValueKey -> d
   ))
   implicit def eveBooleanObjectToEveStructuredObject(b: EveBooleanObject): EveStructuredObject = EveMappingObject(Map(
     TypeKey -> BooleanType,
     CommonKey.Class -> BooleanResultType.getName,
-    Value -> b
+    ValueKey -> b
   ))
   implicit def eveObjectToEveStructuredObject(o: EveObject): EveStructuredObject = o match {
     case o: EveStructuredObject => o
@@ -91,6 +94,7 @@ case class EveStringObject(s: String) extends EveObject {
   override def toString() = s
 }
 case class EveDateObject(d: Date) extends EveObject {
+  def toFormattedString(): String = EveObject.fullDateFormat.format(d)
   override def toString() = DateFormat.getDateInstance(DateFormat.MEDIUM).format(d)
 }
 case class EveTimeObject(t: ITimeObject) extends EveObject
@@ -149,7 +153,6 @@ object EveResultObject {
 
 object EveObjectDSL {
   class EveObjectPath(val o: EveObject) {
-    //def \(field: String): Option[EveObject] = Try(o.asInstanceOf[EveStructuredObject]).toOption.flatMap(_.get(field))
     def \(field: String): EveObject = o.asInstanceOf[EveStructuredObject](field)
     def toNumber: Number = o.asInstanceOf[EveNumberObject].n
     def toBoolean: Boolean = o.asInstanceOf[EveBooleanObject].b

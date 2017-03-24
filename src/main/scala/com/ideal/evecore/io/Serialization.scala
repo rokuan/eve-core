@@ -25,6 +25,7 @@ import org.json4s.JsonAST.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jackson.{JsonMethods, Serialization}
 
+
 /**
   * Created by Christophe on 07/03/17.
   */
@@ -42,17 +43,22 @@ object Readers {
 
   class EveObjectResultConverter(val socket: Socket) extends ResultReader[EveObject] with ResultWriter[EveObject] {
     implicit val converter: Serializer[EveObject] = new CustomSerializer[EveObject](data => ({
-      case JString(s) => EveStringObject(s)
+      case JString(s) => s
       case JDouble(d) => EveNumberObject(d)
       case JInt(i) => EveNumberObject(i)
       case JArray(l) => EveObjectList(l.map(_.extract[EveObject]))
       case JBool(b) => EveBooleanObject(b)
-      case o: JObject => new RemoteEveStructuredObject((o \ "eve_id").extract[String], socket)
+      case o: JObject => {
+        (o \ EveObject.IdKey).extractOpt[String].map { id =>
+          new RemoteEveStructuredObject(id, socket)
+        }.getOrElse(JValueConverters.jObjectToEveStructuredObject(o))
+      }
       case JNull => null
     }, {
       case EveStringObject(s) => JString(s)
       case EveBooleanObject(b) => JBool(b)
       case EveNumberObject(n) => n
+      case d: EveDateObject => JString(d.toFormattedString())
       case EveObjectList(l) => JArray(l.map(Extraction.decompose(_)).toList)
       case null => JNull
     }))
@@ -76,6 +82,7 @@ object Readers {
       case _ => UndefinedValueMatcher
     }, {
       case StringValueMatcher(s) => JString(s)
+      case AnyValueMatcher => JString("*")
       case BooleanValueMatcher(b) => JBool(b)
       case NumberValueMatcher(n) => n
       case OrValueMatcher(a) => JArray(a.map(Extraction.decompose(_)).toList)
@@ -220,5 +227,19 @@ object Streamers {
         .map(converter.extract)
         .orNull
     }
+  }
+}
+
+object JValueConverters {
+  implicit def jObjectToEveStructuredObject(o: JObject) = EveMappingObject(o.obj.map { case (key, value) => (key -> jValueToEveObject(value)) }.toMap)
+
+  implicit def jValueToEveObject(v: JValue): EveObject = v match {
+    case JString(s) => s
+    case JBool(b) => EveBooleanObject(b)
+    case JInt(i) => EveNumberObject(i)
+    case JDouble(d) => EveNumberObject(d)
+    case JArray(a) =>  EveObjectList(a.map(jValueToEveObject).toSeq)
+    case o: JObject => jObjectToEveStructuredObject(o)
+    case JNull => null
   }
 }
