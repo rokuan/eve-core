@@ -3,7 +3,7 @@ package com.ideal.evecore.interpreter.remote
 import java.net.Socket
 
 import com.ideal.evecore.common.Conversions._
-import com.ideal.evecore.interpreter.{Context, EveObject}
+import com.ideal.evecore.interpreter.{EveStructuredObject, EveObjectList, Context, EveObject}
 
 import scala.util.{Failure, Success, Try}
 
@@ -14,15 +14,31 @@ import scala.util.{Failure, Success, Try}
 class RemoteContext(val socket: Socket) extends Context with RemoteEndPoint {
   import RemoteContextMessage._
 
-  override def findItemsOfType(t: String): Option[EveObject] = Try {
+  override def findItemsOfType(t: String): Option[EveObjectList] = Try {
     safe {
       writeCommand(FindItemsOfType)
       writeValue(t)
-      readResultValue[EveObject]
+      readResultValue[EveObjectList]
     }
   } match {
     case Success(o) => o
-    case Failure(_: Throwable) => Option.empty[EveObject]
+    case Failure(_: Throwable) => Option.empty[EveObjectList]
+  }
+
+  /**
+   * Queries the context to find a single item of a certain type
+   * @param t The type to query
+   * @return A single object matching this type if some
+   */
+  override def findOneItemOfType(t: String): Option[EveStructuredObject] = Try {
+    safe {
+      writeCommand(FindOneItemOfType)
+      writeValue(t)
+      readResultValue[EveStructuredObject]
+    }
+  } match {
+    case Success(o) => o
+    case Failure(_: Throwable) => Option.empty[EveStructuredObject]
   }
 
   /**
@@ -37,5 +53,6 @@ class RemoteContext(val socket: Socket) extends Context with RemoteEndPoint {
 
 object RemoteContextMessage {
   val FindItemsOfType = "FTYP"
+  val FindOneItemOfType = "FOTY"
   val ObjectRequest = "ORQT"
 }

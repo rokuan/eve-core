@@ -2,7 +2,7 @@ package com.ideal.evecore.interpreter.remote
 
 import java.net.Socket
 
-import com.ideal.evecore.interpreter.{Context, EveObject, EveStructuredObject, QueryContext}
+import com.ideal.evecore.interpreter._
 
 import scala.util.Try
 import scala.util.control.Breaks
@@ -31,6 +31,11 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
               case RemoteContextMessage.FindItemsOfType => {
                 val queryType = readValue()
                 val result = findItemsOfType(queryType)
+                writeResultValue(result)
+              }
+              case RemoteContextMessage.FindOneItemOfType => {
+                val queryType = readValue()
+                val result = findOneItemOfType(queryType)
                 writeResultValue(result)
               }
               case RemoteContextMessage.ObjectRequest => {
@@ -96,7 +101,14 @@ class StreamContext(protected val socket: Socket, val context: QueryContext) ext
     writeValue(o.hasState(state))
   }
 
-  override def findItemsOfType(t: String): Option[EveObject] = context.findItemsOfType(t)
+  override def findItemsOfType(t: String): Option[EveObjectList] = context.findItemsOfType(t)
+
+  /**
+   * Queries the context to find a single item of a certain type
+   * @param t The type to query
+   * @return A single object matching this type if some
+   */
+  override def findOneItemOfType(t: String): Option[EveStructuredObject] = context.findOneItemOfType(t)
 }
 
 object StreamContext {

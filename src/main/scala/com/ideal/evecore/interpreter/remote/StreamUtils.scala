@@ -22,6 +22,8 @@ trait StreamUtils {
   val os: OutputStream = socket.getOutputStream
 
   implicit val resultConverter = new EveObjectResultConverter(socket)
+  implicit val resultListConverter = new EveObjectListResultConverter(socket)
+  implicit val resultStructuredObjectConverter = new EveStructuredObjectResultConverter(socket)
   implicit val resultStreamHandler = new EveObjectStreamHandler(socket)
   implicit val messageConverter = new MessageConverter(socket)
   implicit val messageHandler = new MessageStreamHandler(socket)

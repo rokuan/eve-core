@@ -4,6 +4,7 @@ import java.util.Calendar
 
 import com.ideal.evecore.io.Writer
 import com.ideal.evecore.universe.execution.TaskHandler
+import com.rokuan.calliopecore.sentence.structure.data.count.CountObject.CountType
 import com.rokuan.calliopecore.sentence.{ActionObject, IPronoun}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.content.{INominalObject, ITimeObject, IWayObject}
@@ -197,7 +198,15 @@ trait Evaluator {
   final protected def findAbstractTarget(abstractTarget: AbstractTarget): Try[EveObject] = findPronounSource(abstractTarget.source)
 
   def findPronounSource(pronoun: IPronoun): Try[EveObject]
-  def findNameObject(name: NameObject): Try[EveObject]
+  def findNameObject(name: NameObject): Try[EveObject] = Try {
+    // TODO: query the context according to the quantity and/or position
+    val typeTag = name.`object`.getNameTag
+    if(name.count.getType == CountType.ALL){
+      context.findItemsOfType(typeTag)
+    } else {
+      context.findOneItemOfType(typeTag)
+    }
+  }
   def findCharacter(char: CharacterObject): Try[EveObject]
   def findNamedPlace(place: NamedPlaceObject): Try[EveObject]
   def findAdditionalDataByCode(code: String): Try[EveObject]

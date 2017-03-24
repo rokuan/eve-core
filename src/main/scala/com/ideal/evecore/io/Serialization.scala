@@ -55,6 +55,10 @@ object Readers {
       }
       case JNull => null
     }, {
+      case EveMappingObject(m) => JObject(m.map { case (key, value) =>  (key -> Extraction.decompose(value)) }.toList)
+      case o: EveStructuredObject => o.get(EveObject.IdKey).collect {
+        case EveStringObject(id) => JObject(EveObject.IdKey -> JString(id))
+      }.getOrElse(JObject())
       case EveStringObject(s) => JString(s)
       case EveBooleanObject(b) => JBool(b)
       case EveNumberObject(n) => n
@@ -66,6 +70,31 @@ object Readers {
     override def extract(o: JValue): EveObject = o.extract[EveObject]
 
     override def transform(o: EveObject): json4s.JValue = Extraction.decompose(o)
+  }
+
+  class EveObjectListResultConverter(val socket: Socket) extends ResultReader[EveObjectList] with ResultWriter[EveObjectList] {
+    implicit val eveObjectSerializer = new EveObjectResultConverter(socket).converter
+
+    override def extract(o: json4s.JValue): EveObjectList = o match {
+      case JArray(l) => EveObjectList(l.map(_.extract[EveObject]))
+      case _ => EveObjectList(Seq())
+    }
+
+    override def transform(o: EveObjectList): json4s.JValue = JArray(o.a.map(Extraction.decompose(_)).toList)
+  }
+
+  class EveStructuredObjectResultConverter(val socket: Socket) extends ResultReader[EveStructuredObject] with ResultWriter[EveStructuredObject] {
+    implicit val eveObjectSerializer = new EveObjectResultConverter(socket).converter
+    override def extract(o: json4s.JValue): EveStructuredObject = o match {
+      case o: JObject => {
+        (o \ EveObject.IdKey).extractOpt[String].map { id =>
+          new RemoteEveStructuredObject(id, socket)
+        }.getOrElse(JValueConverters.jObjectToEveStructuredObject(o))
+      }
+      case _ => new EveMappingObject(Map())
+    }
+
+    override def transform(o: EveStructuredObject): json4s.JValue = ???
   }
 
   implicit object ValueMatcherConverter extends ResultReader[ValueMatcher] with ResultWriter[ValueMatcher] {
