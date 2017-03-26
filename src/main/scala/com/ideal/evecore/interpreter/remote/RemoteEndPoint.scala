@@ -27,12 +27,6 @@ trait RemoteEndPoint extends StreamUtils {
       true
     case _ => false
   }
-
-  /**
-    * Sends a command to the client
-    * @param cmd The command to be executed
-    */
-  protected def writeCommand(cmd: String): Unit
 }
 
 object RemoteEndPointMessage {

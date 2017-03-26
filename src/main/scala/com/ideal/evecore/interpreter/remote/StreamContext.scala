@@ -13,7 +13,7 @@ import com.ideal.evecore.io.Readers.StringResultConverter
 /**
  * Created by Christophe on 07/03/17.
  */
-class StreamContext(protected val socket: Socket, val context: QueryContext) extends Context with StreamUtils {
+class StreamContext(private val contextId: String, protected val socket: Socket, val context: QueryContext) extends Context with StreamUtils {
   readEndlessly()
 
   /**

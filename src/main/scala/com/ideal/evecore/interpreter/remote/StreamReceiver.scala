@@ -15,7 +15,7 @@ import scala.util.control.Breaks
 /**
   * Created by Christophe on 11/03/2017.
   */
-class StreamReceiver(protected val socket: Socket, protected val receiver: Receiver) extends Receiver with StreamUtils {
+class StreamReceiver(private val receiverId: String, protected val socket: Socket, protected val receiver: Receiver) extends Receiver with StreamUtils {
   readEndlessly()
 
   private final def readEndlessly() = Try {
