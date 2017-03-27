@@ -4,9 +4,10 @@ import java.net.Socket
 
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.EveObject
+import com.ideal.evecore.io.command.ReceiverCommand
+import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.ValueMatcher
 import com.ideal.evecore.universe.receiver.{Message, Receiver}
-import RemoteReceiverMessage._
 import com.ideal.evecore.common.Conversions._
 import com.ideal.evecore.io.Streamers._
 
@@ -19,15 +20,15 @@ class RemoteReceiver(protected val id: String, protected val socket: Socket) ext
   /**
     * Called to initialize this receiver
     */
-  override def initReceiver(): Unit = safeWithHeader(writeCommand(InitReceiver))
+  override def initReceiver(): Unit = safe(writeCommand(InitReceiverCommand()))
 
   /**
     * Retrieves this receiver's name
     *
     * @return This receiver's name
     */
-  override def getReceiverName(): String = safeWithHeader {
-    writeCommand(GetReceiverName)
+  override def getReceiverName(): String = safe {
+    writeCommand(GetReceiverNameCommand())
     readValue()
   }
 
@@ -36,8 +37,8 @@ class RemoteReceiver(protected val id: String, protected val socket: Socket) ext
     *
     * @return A mapping containing the definition field of this receiver
     */
-  override def getMappings(): Mapping[ValueMatcher] = safeWithHeader {
-    writeCommand(GetMappings)
+  override def getMappings(): Mapping[ValueMatcher] = safe {
+    writeCommand(GetMappingsCommand())
     readItem[Mapping[ValueMatcher]]
   }
 
@@ -47,21 +48,19 @@ class RemoteReceiver(protected val id: String, protected val socket: Socket) ext
     * @param message The message to process
     * @return The result of the operation
     */
-  override def handleMessage(message: Message): Try[EveObject] = safeWithHeader {
-    writeCommand(HandleMessage)
-    writeItem(message)
+  override def handleMessage(message: Message): Try[EveObject] = safe {
+    writeCommand(HandleMessageCommand(message))
     readResultValue[EveObject]
   }
 
   /**
     * Called when destroying this receiver, to make sure everything is cleaned up
     */
-  override def destroyReceiver(): Unit = safeWithHeader(writeCommand(DestroyReceiver))
-
-  private final def safeWithHeader[T](f: => T) = safe {
-    writeCommand(ReceiverCommand)
-    writeValue(id)
-    f
+  override def destroyReceiver(): Unit = safe { writeCommand(DestroyReceiverCommand()) }
+  
+  protected def writeCommand(command: ReceiverCommand) = {
+    val userCommand = ReceiverRequestCommand(id, command)
+    // TODO:
   }
 }
 

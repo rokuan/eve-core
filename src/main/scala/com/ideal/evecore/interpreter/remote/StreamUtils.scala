@@ -34,23 +34,14 @@ trait StreamUtils extends BasicSocketUtils {
     * Reads a command from the server
     * @return
     */
-  protected def readCommand(): String = {
+  /*protected def readCommand(): String = {
     val commandData = new Array[Byte](4)
     if(is.read(commandData) >= 0){
       new String(commandData)
     } else {
       null
     }
-  }
-
-  /**
-    * Sends a command to the client
-    * @param cmd The command to be executed
-    */
-  protected def writeCommand(cmd: String) = {
-    os.write(cmd.getBytes)
-    os.flush()
-  }
+  }*/
 
   protected def readResultValue[T >: Null](implicit reader: ResultReader[T]): Result[T] = reader.readFrom(is)
   protected def writeResultValue[T >: Null](v: Result[T])(implicit writer: ResultWriter[T]): Unit = writer.writeTo(os, v)

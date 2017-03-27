@@ -7,7 +7,7 @@ import com.ideal.evecore.interpreter.remote.RemoteContextMessage._
  */
 trait ContextCommand
 
-case class FindItemByIdCommand(id: String, command: String = FindItemById)
-case class FindOneItemOfTypeCommand(itemType: String, command: String = FindOneItemOfType)
-case class FindItemsOfTypeCommand(itemType: String, command: String = FindItemsOfType)
-case class ObjectCommand(objectId: String, objectCommand: EveStructuredObjectCommand)
+case class FindItemByIdCommand(id: String, command: String = FindItemById) extends ContextCommand
+case class FindOneItemOfTypeCommand(itemType: String, command: String = FindOneItemOfType) extends ContextCommand
+case class FindItemsOfTypeCommand(itemType: String, command: String = FindItemsOfType) extends ContextCommand
+case class ObjectCommand(objectId: String, objectCommand: EveStructuredObjectCommand, command: String = ObjectRequest) extends ContextCommand

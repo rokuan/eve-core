@@ -14,4 +14,4 @@ case class SetFieldCommand(field: String, value: EveObject, command: String = Se
 case class HasFieldCommand(field: String, command: String = HasField) extends EveStructuredObjectCommand
 case class GetStateCommand(field: String, command: String = GetState) extends EveStructuredObjectCommand
 case class SetStateCommand(field: String, value: String, command: String = SetState) extends EveStructuredObjectCommand
-case class HasState(field: String, command: String = HasState) extends EveStructuredObjectCommand
+case class HasStateCommand(field: String, command: String = HasState) extends EveStructuredObjectCommand

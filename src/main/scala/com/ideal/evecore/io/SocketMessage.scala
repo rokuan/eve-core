@@ -6,4 +6,7 @@ package com.ideal.evecore.io
 object SocketMessage {
   val RegisterReceiver = "RRCV"
   val RegisterContext = "RCTX"
+  val CallReceiverMethod = "CRMT"
+  val CallContextMethod = "CCMT"
+  val CallObjectMethod = "COMT"
 }
