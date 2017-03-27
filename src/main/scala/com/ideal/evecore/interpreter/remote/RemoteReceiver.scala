@@ -13,7 +13,7 @@ import com.ideal.evecore.io.Streamers._
 import scala.util.Try
 
 /**
-  * Created by chris on 09/03/17.
+  * Created by Christophe on 09/03/17.
   */
 class RemoteReceiver(protected val id: String, protected val socket: Socket) extends Receiver with RemoteEndPoint {
   /**

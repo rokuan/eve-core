@@ -10,7 +10,7 @@ import ReceiverServer._
 import scala.util.control.Breaks
 
 /**
- * Created by chris on 09/03/17.
+ * Created by Christophe on 09/03/17.
  */
 class ReceiverServer(protected val world: World, port: Int) extends Thread {
   protected val server = new ServerSocket(port)

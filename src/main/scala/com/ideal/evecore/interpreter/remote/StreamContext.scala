@@ -14,51 +14,43 @@ import com.ideal.evecore.io.Readers.StringResultConverter
  * Created by Christophe on 07/03/17.
  */
 class StreamContext(private val contextId: String, protected val socket: Socket, val context: QueryContext) extends Context with StreamUtils {
-  readEndlessly()
-
   /**
    * Reads the commands that are sent from the server
    * @return
    */
-  private final def readEndlessly() = Try {
-    val breaks = new Breaks
+  final def handleCommand() = Try {
+    safe {
+      Option(readCommand()).map { command =>
+        command match {
+          case RemoteContextMessage.FindItemsOfType => {
+            val queryType = readValue()
+            val result = findItemsOfType(queryType)
+            writeResultValue(result)
+          }
+          case RemoteContextMessage.FindOneItemOfType => {
+            val queryType = readValue()
+            val result = findOneItemOfType(queryType)
+            writeResultValue(result)
+          }
+          case RemoteContextMessage.ObjectRequest => {
+            val objectId = readValue()
+            val command = readCommand()
 
-    breaks.breakable {
-      while(true){
-        safe {
-          Option(readCommand()).map { command =>
-            command match {
-              case RemoteContextMessage.FindItemsOfType => {
-                val queryType = readValue()
-                val result = findItemsOfType(queryType)
-                writeResultValue(result)
+            context.findById(objectId).foreach { o =>
+              command match {
+                case GetType => getObjectType(o)
+                case SetField => setObjectField(o)
+                case GetField => getObjectField(o)
+                case GetState => getObjectState(o)
+                case SetState => setObjectState(o)
+                case HasField => objectHasField(o)
+                case HasState => objectHasState(o)
+                case _ =>
               }
-              case RemoteContextMessage.FindOneItemOfType => {
-                val queryType = readValue()
-                val result = findOneItemOfType(queryType)
-                writeResultValue(result)
-              }
-              case RemoteContextMessage.ObjectRequest => {
-                val objectId = readValue()
-                val command = readCommand()
-
-                context.findById(objectId).foreach { o =>
-                  command match {
-                    case GetType => getObjectType(o)
-                    case SetField => setObjectField(o)
-                    case GetField => getObjectField(o)
-                    case GetState => getObjectState(o)
-                    case SetState => setObjectState(o)
-                    case HasField => objectHasField(o)
-                    case HasState => objectHasState(o)
-                    case _ =>
-                  }
-                }
-              }
-              case RemoteEndPointMessage.Ping => // Just a ping message to ensure that the connection is still alive
-              case _ =>
             }
-          }.getOrElse(breaks.break())
+          }
+          case RemoteEndPointMessage.Ping => // Just a ping message to ensure that the connection is still alive
+          case _ =>
         }
       }
     }

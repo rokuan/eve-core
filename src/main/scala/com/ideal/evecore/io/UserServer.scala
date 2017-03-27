@@ -50,6 +50,7 @@ abstract class UserServer[T <: Session](val port: Int) extends Thread with AutoC
 
 abstract class UserSocket[T <: Session](protected val socket: Socket, protected val session: T) extends Thread with StreamUtils {
   import SocketMessage._
+  import com.ideal.evecore.interpreter.remote.RemoteEveStructuredObjectMessage._
   protected val environment: Environment
   protected val world: World
   protected val evaluator: Evaluator
@@ -68,12 +69,14 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
         cmd match {
           case RegisterContext => registerContext()
           case RegisterReceiver => registerReceiver()
+          case null => running.set(false)
+          case _ =>
         }
       }.getOrElse(running.set(false))
     }
   }
 
-  private def registerReceiver() = {
+  private def registerReceiver() = safe {
     val receiverId = freshId()
     val remoteReceiver = new RemoteReceiver(receiverId, socket)
     receivers.put(receiverId, remoteReceiver)
@@ -81,12 +84,12 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
     writeValue(receiverId)
   }
 
-  private def unregisterReceiver() = {
+  private def unregisterReceiver() = safe {
     val receiverId = readValue()
     receivers.get(receiverId).map(world.unregisterReceiver)
   }
 
-  private def registerContext() = {
+  private def registerContext() = safe {
     val contextId = freshId()
     val remoteContext = new RemoteContext(contextId, socket)
     contexts.put(contextId, remoteContext)
@@ -94,7 +97,7 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
     writeValue(contextId)
   }
 
-  private def unregisterContext() = {
+  private def unregisterContext() = safe {
     val contextId = readValue()
     contexts.get(contextId).map(environment.removeContext)
   }

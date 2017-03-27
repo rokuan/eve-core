@@ -3,7 +3,7 @@ package com.ideal.evecore.interpreter.remote
 import java.net.Socket
 
 import com.ideal.evecore.common.Conversions._
-import com.ideal.evecore.interpreter.{EveStructuredObject, EveObjectList, Context}
+import com.ideal.evecore.interpreter.{QueryContext, EveStructuredObject, EveObjectList, Context}
 
 import scala.util.{Failure, Success, Try}
 
@@ -11,7 +11,7 @@ import scala.util.{Failure, Success, Try}
 /**
  * Created by Christophe on 05/03/2017.
  */
-class RemoteContext(protected val id: String, protected val socket: Socket) extends Context with RemoteEndPoint {
+class RemoteContext(protected val id: String, protected val socket: Socket) extends QueryContext with RemoteEndPoint {
   import RemoteContextMessage._
 
   override def findItemsOfType(t: String): Option[EveObjectList] = Try {
@@ -51,11 +51,18 @@ class RemoteContext(protected val id: String, protected val socket: Socket) exte
     writeValue(id)
     f
   }
+
+  override def findById(id: String): Option[EveStructuredObject] = safe {
+    writeCommand(FindItemById)
+    writeValue(id)
+    readResultValue[EveStructuredObject]
+  }
 }
 
 object RemoteContextMessage {
   val ContextCommand = "CCMD"
   val FindItemsOfType = "FTYP"
   val FindOneItemOfType = "FOTY"
+  val FindItemById = "FBID"
   val ObjectRequest = "ORQT"
 }
