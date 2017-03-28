@@ -3,9 +3,10 @@ package com.ideal.evecore.interpreter.remote
 import com.ideal.evecore.interpreter.EveObject
 import com.ideal.evecore.io.Readers.EveObjectResultConverter
 import com.ideal.evecore.io.Streamers.{EveObjectStreamHandler, MessageStreamHandler}
+import com.ideal.evecore.io.command.UserCommand
 import com.ideal.evecore.io.{StreamReader, StreamWriter}
 import com.ideal.evecore.io.message.{Result, ResultReader, ResultWriter}
-import org.json4s.jackson.JsonMethods
+import org.json4s.jackson.{Serialization, JsonMethods}
 import org.json4s.native.Serialization._
 import com.ideal.evecore.io.Readers._
 
@@ -30,18 +31,20 @@ trait StreamUtils extends BasicSocketUtils {
     resultConverter.extract(JsonMethods.parse(json))
   }
 
+  protected def readUserCommand(): UserCommand = {
+    val json = readValue()
+    Serialization.read[UserCommand](json)
+  }
+
+  protected def writeUserCommand(command: UserCommand) = {
+    val json = Serialization.write[UserCommand](command)
+    writeValue(json)
+  }
+
   /**
     * Reads a command from the server
     * @return
     */
-  /*protected def readCommand(): String = {
-    val commandData = new Array[Byte](4)
-    if(is.read(commandData) >= 0){
-      new String(commandData)
-    } else {
-      null
-    }
-  }*/
 
   protected def readResultValue[T >: Null](implicit reader: ResultReader[T]): Result[T] = reader.readFrom(is)
   protected def writeResultValue[T >: Null](v: Result[T])(implicit writer: ResultWriter[T]): Unit = writer.writeTo(os, v)

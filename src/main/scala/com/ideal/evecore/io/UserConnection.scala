@@ -3,10 +3,11 @@ package com.ideal.evecore.io
 import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.ideal.evecore.interpreter.QueryContext
-import com.ideal.evecore.interpreter.remote.StreamUtils
+import com.ideal.evecore.interpreter.Context
+import com.ideal.evecore.interpreter.remote.{StreamReceiver, StreamContext, StreamUtils}
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.receiver.Receiver
+import org.json4s.DefaultFormats
 import org.json4s.jackson.Serialization
 
 
@@ -14,26 +15,25 @@ import org.json4s.jackson.Serialization
  * Created by Christophe on 26/03/2017.
  */
 class UserConnection(val host: String, val port: Int) extends Thread with StreamUtils {
+  implicit val formats = DefaultFormats + UserCommand.UserCommandSerializer
+
   protected val socket = new Socket(host, port)
-  protected val contexts = collection.mutable.Map[String, QueryContext]()
-  protected val receivers = collection.mutable.Map[String, Receiver]()
+  protected val contexts = collection.mutable.Map[String, StreamContext]()
+  protected val receivers = collection.mutable.Map[String, StreamReceiver]()
   private val running = new AtomicBoolean(true)
 
   def registerReceiver(r: Receiver) = safe {
     writeCommand(RegisterReceiverCommand())
     val receiverId = readValue()
-    receivers.put(receiverId, r)
+    val streamReceiver = new StreamReceiver(receiverId, socket, r)
+    receivers.put(receiverId, streamReceiver)
   }
 
-  def registerContext(c: QueryContext) = safe {
+  def registerContext(c: Context) = safe {
     writeCommand(RegisterContextCommand())
     val contextId = readValue()
-    contexts.put(contextId, c)
-  }
-
-  def disconnect() = {
-    running.set(false)
-    socket.close()
+    val streamContext = new StreamContext(contextId, socket, c)
+    contexts.put(contextId, streamContext)
   }
 
   override def run(): Unit = {
@@ -49,31 +49,18 @@ class UserConnection(val host: String, val port: Int) extends Thread with Stream
     }
   }
 
-  protected def executeReceiverCommand(rrc: ReceiverRequestCommand) = {
-    receivers.get(rrc.receiverId).map { r =>
-      rrc.receiverCommand match {
-        // TODO:
-        case _ =>
-      }
-    }
+  def disconnect() = {
+    running.set(false)
+    socket.close()
   }
 
-  protected def executeContextCommand(crc: ContextRequestCommand) = {
-    contexts.get(crc.contextId).map { r =>
-      crc.contextCommand match {
-        // TODO:
-        case _ =>
-      }
-    }
-  }
+  protected def executeReceiverCommand(rrc: ReceiverRequestCommand) = receivers.get(rrc.receiverId).map(_.handleCommand(rrc.receiverCommand))
+
+  protected def executeContextCommand(crc: ContextRequestCommand) = contexts.get(crc.contextId).map(_.handleCommand(crc.contextCommand))
 
   protected def executeObjectCommand(orc: ObjectRequestCommand) = {
-    contexts.get(orc.contextId).flatMap(_.findById(orc.objectId)).map { o =>
-      orc.objectCommand match {
-        // TODO:
-        case _ =>
-      }
-    }
+    val delegateCommand = ObjectCommand(orc.objectId, orc.objectCommand)
+    contexts.get(orc.contextId).map(_.handleCommand(delegateCommand))
   }
 
   protected def readCommand(): UserCommand = {

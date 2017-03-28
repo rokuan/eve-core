@@ -3,94 +3,50 @@ package com.ideal.evecore.interpreter.remote
 import java.net.Socket
 
 import com.ideal.evecore.interpreter._
+import com.ideal.evecore.io.Serializers.EveObjectSerializer
+import com.ideal.evecore.io.command.ObjectCommand
+import com.ideal.evecore.io.command._
 
 import scala.util.Try
-import scala.util.control.Breaks
-import RemoteEveStructuredObjectMessage._
 import com.ideal.evecore.common.Conversions._
 import com.ideal.evecore.io.Readers.StringResultConverter
 
 /**
  * Created by Christophe on 07/03/17.
  */
-class StreamContext(private val contextId: String, protected val socket: Socket, val context: QueryContext) extends QueryContext with StreamUtils {
+class StreamContext(private val contextId: String, protected val socket: Socket, val context: Context) extends QueryContext with StreamUtils {
+  implicit val eveObjectSerializer = new EveObjectSerializer(contextId, socket)
+
   /**
    * Reads the commands that are sent from the server
    * @return
    */
-  final def handleCommand() = Try {
+  final def handleCommand(command: ContextCommand) = Try {
     safe {
-      Option(readCommand()).map { command =>
-        command match {
-          case RemoteContextMessage.FindItemsOfType => {
-            val queryType = readValue()
-            val result = findItemsOfType(queryType)
-            writeResultValue(result)
-          }
-          case RemoteContextMessage.FindOneItemOfType => {
-            val queryType = readValue()
-            val result = findOneItemOfType(queryType)
-            writeResultValue(result)
-          }
-          case RemoteContextMessage.ObjectRequest => {
-            val objectId = readValue()
-            val command = readCommand()
-
-            context.findById(objectId).foreach { o =>
-              command match {
-                case GetType => getObjectType(o)
-                case SetField => setObjectField(o)
-                case GetField => getObjectField(o)
-                case GetState => getObjectState(o)
-                case SetState => setObjectState(o)
-                case HasField => objectHasField(o)
-                case HasState => objectHasState(o)
-                case _ =>
-              }
-            }
-          }
-          case RemoteEndPointMessage.Ping => // Just a ping message to ensure that the connection is still alive
-          case _ =>
+      command match {
+        case c: FindItemsOfTypeCommand => {
+          val items = findItemsOfType(c.itemType)
+          writeResultValue(items)
         }
+        case c: FindOneItemOfTypeCommand => {
+          val result = findOneItemOfType(c.itemType)
+          writeResultValue(result)
+        }
+        case c: ObjectCommand => findById(c.objectId).map { o =>
+          c.objectCommand match {
+            case c: GetTypeCommand => writeValue(o.getType())
+            case c: SetFieldCommand => o.set(c.field, c.value)
+            case c: GetFieldCommand => writeResultValue(o.get(c.field))
+            case c: SetStateCommand => o.setState(c.field, c.value)
+            case c: GetStateCommand => writeResultValue(o.getState(c.field))
+            case c: HasFieldCommand => writeValue(o.has(c.field))
+            case c: HasStateCommand => writeValue(o.hasState(c.field))
+            case _ =>
+          }
+        }
+        case _ =>
       }
     }
-  }
-
-  private final def getObjectType(o: EveStructuredObject) = {
-    val t = readValue()
-    writeValue(o.getType())
-  }
-
-  private final def getObjectField(o: EveStructuredObject) = {
-    val field = readValue()
-    writeResultValue(o.get(field))
-  }
-
-  private final def setObjectField(o: EveStructuredObject) = {
-    val field = readValue()
-    val value = readObject()
-    o.set(field, value)
-  }
-
-  private final def getObjectState(o: EveStructuredObject) = {
-    val state = readValue()
-    writeResultValue(o.getState(state))(StringResultConverter)
-  }
-
-  private final def setObjectState(o: EveStructuredObject) = {
-    val state = readValue()
-    val value = readValue()
-    o.setState(state, value)
-  }
-
-  private final def objectHasField(o: EveStructuredObject) = {
-    val field = readValue()
-    writeValue(o.has(field))
-  }
-
-  private final def objectHasState(o: EveStructuredObject) = {
-    val state = readValue()
-    writeValue(o.hasState(state))
   }
 
   override def findItemsOfType(t: String): Option[EveObjectList] = context.findItemsOfType(t)
@@ -101,11 +57,9 @@ class StreamContext(private val contextId: String, protected val socket: Socket,
    * @return A single object matching this type if some
    */
   override def findOneItemOfType(t: String): Option[EveStructuredObject] = context.findOneItemOfType(t)
-}
 
-object StreamContext {
-  def connect(host: String, port: Int)(context: QueryContext): Try[StreamContext] = Try {
-    val socket = new Socket(host, port)
-    new StreamContext(socket, context)
+  override def findById(id: String): Option[EveStructuredObject] = context match {
+    case q: QueryContext => q.findById(id)
+    case _ => Option.empty[EveStructuredObject]
   }
 }

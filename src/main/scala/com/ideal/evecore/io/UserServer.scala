@@ -5,8 +5,11 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.ideal.evecore.interpreter.{Environment, Evaluator}
 import com.ideal.evecore.interpreter.remote.{BasicSocketUtils, RemoteContext, RemoteReceiver, StreamUtils}
+import com.ideal.evecore.io.command.{RegisterReceiverCommand, RegisterContextCommand, UserCommand}
 import com.ideal.evecore.universe.World
 import com.ideal.evecore.users.Session
+import org.json4s.DefaultFormats
+import org.json4s.jackson.Serialization
 
 import scala.util.Try
 import scala.util.control.Breaks
@@ -49,8 +52,8 @@ abstract class UserServer[T <: Session](val port: Int) extends Thread with AutoC
 }
 
 abstract class UserSocket[T <: Session](protected val socket: Socket, protected val session: T) extends Thread with StreamUtils {
-  import SocketMessage._
-  import com.ideal.evecore.interpreter.remote.RemoteEveStructuredObjectMessage._
+  implicit val formats = DefaultFormats + UserCommand.UserCommandSerializer
+
   protected val environment: Environment
   protected val world: World
   protected val evaluator: Evaluator
@@ -59,7 +62,7 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   private val receivers = collection.mutable.Map[String, RemoteReceiver]()
   private val contexts = collection.mutable.Map[String, RemoteContext]()
 
-  private val idGenerator = new AtomicInteger(0)
+  private final val idGenerator = new AtomicInteger(0)
 
   def getSession(): T = session
 
@@ -67,8 +70,8 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
     while(running.get()){
       Try(readCommand()).map { cmd =>
         cmd match {
-          case RegisterContext => registerContext()
-          case RegisterReceiver => registerReceiver()
+          case _: RegisterContextCommand => registerContext()
+          case _: RegisterReceiverCommand => registerReceiver()
           case null => running.set(false)
           case _ =>
         }
@@ -100,6 +103,11 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   private def unregisterContext() = safe {
     val contextId = readValue()
     contexts.get(contextId).map(environment.removeContext)
+  }
+
+  protected def readCommand(): UserCommand = {
+    val json = readValue()
+    Serialization.read[UserCommand](json)
   }
 
   private final def freshId(): String = idGenerator.incrementAndGet().toString

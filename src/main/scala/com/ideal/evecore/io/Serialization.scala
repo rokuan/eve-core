@@ -27,8 +27,8 @@ import org.json4s.jackson.{JsonMethods, Serialization}
 
 
 /**
-  * Created by Christophe on 07/03/17.
-  */
+ * Created by Christophe on 07/03/17.
+ */
 object Readers {
   implicit val format = DefaultFormats
   implicit val converters = Serialization.formats(NoTypeHints)
@@ -50,7 +50,9 @@ object Readers {
       case JBool(b) => EveBooleanObject(b)
       case o: JObject => {
         (o \ EveObject.IdKey).extractOpt[String].map { id =>
-          new RemoteEveStructuredObject(id, socket)
+          //new RemoteEveStructuredObject(id, socket)
+          // TODO:
+          new RemoteEveStructuredObject("", id, socket)
         }.getOrElse(JValueConverters.jObjectToEveStructuredObject(o))
       }
       case JNull => null
@@ -88,7 +90,9 @@ object Readers {
     override def extract(o: json4s.JValue): EveStructuredObject = o match {
       case o: JObject => {
         (o \ EveObject.IdKey).extractOpt[String].map { id =>
-          new RemoteEveStructuredObject(id, socket)
+          //new RemoteEveStructuredObject(id, socket)
+          // TODO:
+          new RemoteEveStructuredObject("", id, socket)
         }.getOrElse(JValueConverters.jObjectToEveStructuredObject(o))
       }
       case _ => new EveMappingObject(Map())
@@ -258,6 +262,7 @@ object Streamers {
     }
   }
 }
+
 
 object JValueConverters {
   implicit def jObjectToEveStructuredObject(o: JObject) = EveMappingObject(o.obj.map { case (key, value) => (key -> jValueToEveObject(value)) }.toMap)

@@ -29,7 +29,7 @@ class UnitConverterController extends Receiver {
     InterpretationObjectKey.How -> ObjectValueMatcher(WayObjectKey.WayType -> StringValueMatcher(WayAdverbial.WayType.UNIT.name()))
   )
 
-  override def handleMessage(message: Message): Try[EveObject] = message match {
+  override def handleMessage(message: EveObjectMessage): Try[EveObject] = message match {
     case EveObjectMessage(o) =>
       val srcValue = Try {
         val quantityObject = o \ InterpretationObjectKey.What

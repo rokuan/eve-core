@@ -26,7 +26,7 @@ trait Receiver {
    * @param message The message to process
    * @return The result of the operation
    */
-  def handleMessage(message: Message): Try[EveObject]
+  def handleMessage(message: EveObjectMessage): Try[EveObject]
 
   /**
    * Retrieves this receiver's name

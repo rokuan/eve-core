@@ -46,14 +46,6 @@ class RemoteContext(protected val id: String, protected val socket: Socket) exte
 
   protected def writeCommand(command: ContextCommand) = {
     val userCommand = ContextRequestCommand(id, command)
-    // TODO:
+    writeUserCommand(userCommand)
   }
-}
-
-object RemoteContextMessage {
-  val ContextCommand = "CCMD"
-  val FindItemsOfType = "FTYP"
-  val FindOneItemOfType = "FOTY"
-  val FindItemById = "FBID"
-  val ObjectRequest = "ORQT"
 }

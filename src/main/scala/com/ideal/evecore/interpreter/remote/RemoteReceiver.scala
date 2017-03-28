@@ -7,7 +7,7 @@ import com.ideal.evecore.interpreter.EveObject
 import com.ideal.evecore.io.command.ReceiverCommand
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.ValueMatcher
-import com.ideal.evecore.universe.receiver.{Message, Receiver}
+import com.ideal.evecore.universe.receiver.{EveObjectMessage, Message, Receiver}
 import com.ideal.evecore.common.Conversions._
 import com.ideal.evecore.io.Streamers._
 
@@ -48,7 +48,7 @@ class RemoteReceiver(protected val id: String, protected val socket: Socket) ext
     * @param message The message to process
     * @return The result of the operation
     */
-  override def handleMessage(message: Message): Try[EveObject] = safe {
+  override def handleMessage(message: EveObjectMessage): Try[EveObject] = safe {
     writeCommand(HandleMessageCommand(message))
     readResultValue[EveObject]
   }
@@ -62,13 +62,4 @@ class RemoteReceiver(protected val id: String, protected val socket: Socket) ext
     val userCommand = ReceiverRequestCommand(id, command)
     // TODO:
   }
-}
-
-object RemoteReceiverMessage {
-  val ReceiverCommand = "RCMD"
-  val InitReceiver = "IRCV"
-  val DestroyReceiver = "DRCV"
-  val HandleMessage = "HMSG"
-  val GetMappings = "GMAP"
-  val GetReceiverName = "GRNM"
 }
