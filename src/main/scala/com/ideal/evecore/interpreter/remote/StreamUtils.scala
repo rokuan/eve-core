@@ -14,13 +14,6 @@ import com.ideal.evecore.io.Readers._
  * Created by Christophe on 06/03/17.
  */
 trait StreamUtils extends BasicSocketUtils {
-  implicit val resultConverter = new EveObjectResultConverter(socket)
-  implicit val resultListConverter = new EveObjectListResultConverter(socket)
-  implicit val resultStructuredObjectConverter = new EveStructuredObjectResultConverter(socket)
-  implicit val resultStreamHandler = new EveObjectStreamHandler(socket)
-  implicit val messageConverter = new MessageConverter(socket)
-  implicit val messageHandler = new MessageStreamHandler(socket)
-
   protected def writeObject(o: EveObject) = {
     val json = write(o)
     writeValue(json)

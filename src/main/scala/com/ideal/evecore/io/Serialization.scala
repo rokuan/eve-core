@@ -29,7 +29,7 @@ import org.json4s.jackson.{JsonMethods, Serialization}
 /**
  * Created by Christophe on 07/03/17.
  */
-object Readers {
+/*object Readers {
   implicit val format = DefaultFormats
   implicit val converters = Serialization.formats(NoTypeHints)
 
@@ -127,7 +127,7 @@ object Readers {
     override def transform(o: ValueMatcher): json4s.JValue = Extraction.decompose(o)
   }
 
-  class MessageConverter(val socket: Socket) extends ResultReader[Message] with ResultWriter[Message] {
+  class MessageConverter(val socket: Socket) extends ResultReader[EveObjectMessage] with ResultWriter[EveObjMessage] {
     implicit val eveObjectConvert = new EveObjectResultConverter(socket)
     implicit val converter = new CustomSerializer[Message](data => ({
       case o: JObject => ((o \ "type").extract[String]) match {
@@ -276,4 +276,8 @@ object JValueConverters {
     case o: JObject => jObjectToEveStructuredObject(o)
     case JNull => null
   }
+}*/
+
+object Serialization {
+
 }

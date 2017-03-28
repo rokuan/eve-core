@@ -7,6 +7,7 @@ import com.ideal.evecore.interpreter._
 import com.ideal.evecore.universe.receiver.EveObjectMessage
 import org.json4s.{Extraction, CustomSerializer, DefaultFormats}
 import org.json4s.JsonAST._
+import org.json4s.JsonDSL._
 
 /**
  * Created by Christophe on 28/03/2017.
@@ -32,20 +33,27 @@ object Serializers {
     def readObject(o: JObject): T
   }
 
-  class RemoteEveObjectSerializer(socket: Socket) extends EveObjectSerializer(socket) {
+  /*class RemoteEveObjectSerializer(socket: Socket) extends EveObjectSerializer(socket) {
     implicit val converter = new ObjectConverter[EveStructuredObject] {
       override def writeObject(o: EveStructuredObject): JObject = {
-
+        o match {
+          case EveMappingObject(m) => JObject(m.map { case (key, value) => (key -> Extraction.decompose(value)) }.toList)
+          case r: RemoteEveStructuredObject => (EveObject.IdKey -> JString(r.objectId)) ~ ("__eve_context_id" -> JString(r.contextId))
+        }
       }
 
       override def readObject(o: JObject): EveStructuredObject = {
 
       }
     }
-  }
+  }*/
 
-  class StreamEveObjectSerializer(contextId: String, socket: Socket) extends EveObjectSerializer(socket) {
+  class ContextEveObjectSerializer(contextId: String, socket: Socket) extends EveObjectSerializer(socket) {
+    implicit val converter = new ObjectConverter[EveStructuredObject] {
+      override def writeObject(o: EveStructuredObject): JObject = null
 
+      override def readObject(o: JObject): EveStructuredObject = null
+    }
   }
 
   abstract class EveObjectSerializer(val socket: Socket)(implicit c: ObjectConverter[EveStructuredObject]) extends CustomSerializer[EveObject](data => ({

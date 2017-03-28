@@ -6,7 +6,7 @@ import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.EveObject
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.ValueMatcher
-import com.ideal.evecore.universe.receiver.{EveObjectMessage, Message, Receiver}
+import com.ideal.evecore.universe.receiver.{EveObjectMessage, Receiver}
 import com.ideal.evecore.io.Streamers._
 import com.ideal.evecore.common.Conversions._
 
