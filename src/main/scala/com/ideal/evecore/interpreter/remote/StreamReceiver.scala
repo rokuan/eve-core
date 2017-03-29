@@ -3,11 +3,11 @@ package com.ideal.evecore.interpreter.remote
 import java.net.Socket
 
 import com.ideal.evecore.common.Mapping.Mapping
-import com.ideal.evecore.interpreter.EveObject
+import com.ideal.evecore.interpreter.{EveStructuredObject, QuerySource, EveObject}
+import com.ideal.evecore.io.Serializers
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.ValueMatcher
 import com.ideal.evecore.universe.receiver.{EveObjectMessage, Receiver}
-import com.ideal.evecore.io.Streamers._
 import com.ideal.evecore.common.Conversions._
 
 import scala.util.Try
@@ -15,7 +15,9 @@ import scala.util.Try
 /**
  * Created by Christophe on 11/03/2017.
  */
-class StreamReceiver(private val receiverId: String, protected val socket: Socket, protected val receiver: Receiver) extends Receiver with StreamUtils {
+class StreamReceiver(private val receiverId: String, protected val socket: Socket, protected val receiver: Receiver) extends Receiver with QuerySource with ObjectStreamSource with StreamUtils {
+  override implicit val formats = Serializers.buildRemoteFormats(receiverId, socket)
+
   final def handleCommand(command: ReceiverCommand) = Try {
     safe {
       command match {
@@ -69,4 +71,9 @@ class StreamReceiver(private val receiverId: String, protected val socket: Socke
    * Called when destroying this receiver, to make sure everything is cleaned up
    */
   override def destroyReceiver(): Unit = receiver.destroyReceiver()
+
+  override def findById(id: String): Option[EveStructuredObject] = receiver match {
+    case q: QuerySource => q.findById(id)
+    case _ => Option.empty[EveStructuredObject]
+  }
 }

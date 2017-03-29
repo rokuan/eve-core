@@ -3,7 +3,7 @@ package com.ideal.evecore.universe.receiver.base
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter._
 import com.ideal.evecore.io._
-import com.ideal.evecore.universe.receiver.{EveObjectMessage, Message, Receiver}
+import com.ideal.evecore.universe.receiver.{EveObjectMessage, Receiver}
 import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
@@ -29,32 +29,31 @@ class UnitConverterController extends Receiver {
     InterpretationObjectKey.How -> ObjectValueMatcher(WayObjectKey.WayType -> StringValueMatcher(WayAdverbial.WayType.UNIT.name()))
   )
 
-  override def handleMessage(message: EveObjectMessage): Try[EveObject] = message match {
-    case EveObjectMessage(o) =>
-      val srcValue = Try {
-        val quantityObject = o \ InterpretationObjectKey.What
-        (quantityObject \ QuantityObjectKey.Value toNumber, quantityObject \ QuantityObjectKey.Type toText)
-      }.map { case (v, t) => (v, UnitType.valueOf(t)) }
-      val destUnit = Try(o \ InterpretationObjectKey.How \ UnitObjectKey.Type toText).map(UnitType.valueOf)
-      for {
-        (value, fromUnit) <- srcValue
-        toUnit <- destUnit
-      } yield {
-        if(isTimeUnitType(fromUnit) && isTimeUnitType(toUnit)){
-          val quantityObject = new QuantityObject
-          quantityObject.amount = timeConverter(value, fromUnit, toUnit).doubleValue()
-          quantityObject.unitType = toUnit
-          EveMappingObject(Writer.write(quantityObject))
-        } else if(isDistanceUnitType(fromUnit) && isDistanceUnitType(toUnit)) {
-          val quantityObject = new QuantityObject
-          quantityObject.amount = distanceConverter(value, fromUnit, toUnit).doubleValue()
-          quantityObject.unitType = toUnit
-          EveMappingObject(Writer.write(quantityObject))
-        } else {
-          throw new Exception("Unable to convert this value. Maybe those are two incompatible units")
-        }
+  override def handleMessage(message: EveObjectMessage): Try[EveObject] = {
+    val o = message.obj
+    val srcValue = Try {
+      val quantityObject = o \ InterpretationObjectKey.What
+      (quantityObject \ QuantityObjectKey.Value toNumber, quantityObject \ QuantityObjectKey.Type toText)
+    }.map { case (v, t) => (v, UnitType.valueOf(t)) }
+    val destUnit = Try(o \ InterpretationObjectKey.How \ UnitObjectKey.Type toText).map(UnitType.valueOf)
+    for {
+      (value, fromUnit) <- srcValue
+      toUnit <- destUnit
+    } yield {
+      if(isTimeUnitType(fromUnit) && isTimeUnitType(toUnit)){
+        val quantityObject = new QuantityObject
+        quantityObject.amount = timeConverter(value, fromUnit, toUnit).doubleValue()
+        quantityObject.unitType = toUnit
+        EveMappingObject(Writer.write(quantityObject))
+      } else if(isDistanceUnitType(fromUnit) && isDistanceUnitType(toUnit)) {
+        val quantityObject = new QuantityObject
+        quantityObject.amount = distanceConverter(value, fromUnit, toUnit).doubleValue()
+        quantityObject.unitType = toUnit
+        EveMappingObject(Writer.write(quantityObject))
+      } else {
+        throw new Exception("Unable to convert this value. Maybe those are two incompatible units")
       }
-    case _ => Try(throw new Exception("Unsupported operation"))
+    }
   }
 
   /**

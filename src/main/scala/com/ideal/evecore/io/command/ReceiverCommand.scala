@@ -1,8 +1,8 @@
 package com.ideal.evecore.io.command
 
 import ReceiverCommand._
-import com.ideal.evecore.universe.receiver.Message
-import org.json4s.{DefaultFormats, Extraction, CustomSerializer}
+import com.ideal.evecore.universe.receiver.EveObjectMessage
+import org.json4s.{Extraction, CustomSerializer}
 import org.json4s.JsonAST.JObject
 
 /**
@@ -12,7 +12,7 @@ trait ReceiverCommand
 
 case class InitReceiverCommand(command: String = InitReceiver) extends ReceiverCommand
 case class DestroyReceiverCommand(command: String = DestroyReceiver) extends ReceiverCommand
-case class HandleMessageCommand(message: Message, command: String = HandleMessage) extends ReceiverCommand
+case class HandleMessageCommand(message: EveObjectMessage, command: String = HandleMessage) extends ReceiverCommand
 case class GetReceiverNameCommand(command: String = GetReceiverName) extends ReceiverCommand
 case class GetMappingsCommand(command: String = GetMappings) extends ReceiverCommand
 

@@ -127,6 +127,12 @@ case class EveMappingObject(o: Mapping[EveObject]) extends EveStructuredObject {
   override def getType(): String = get(EveObject.TypeKey).collect { case s: EveStringObject => s.s }.getOrElse("")
 }
 
+trait EveQueryObject extends EveStructuredObject {
+  val id: String
+}
+
+class EveQueryMappingObject(val id: String, values: Mapping[EveObject]) extends EveMappingObject(values) with EveQueryObject
+
 case object NoneObject extends EveObject
 
 

@@ -1,6 +1,6 @@
 package com.ideal.evecore.io.command
 
-import org.json4s.{DefaultFormats, Extraction, CustomSerializer}
+import org.json4s.{Extraction, CustomSerializer}
 import org.json4s.JsonAST.JObject
 import UserCommand._
 
@@ -13,12 +13,14 @@ case class RegisterReceiverCommand(command: String = RegisterReceiver) extends U
 case class RegisterContextCommand(command: String = RegisterContext) extends UserCommand
 case class ReceiverRequestCommand(receiverId: String, receiverCommand: ReceiverCommand, command: String = CallReceiverMethod) extends UserCommand
 case class ContextRequestCommand(contextId: String, contextCommand: ContextCommand, command: String = CallContextMethod) extends UserCommand
-case class ObjectRequestCommand(contextId: String, objectId: String, objectCommand: EveStructuredObjectCommand, command: String = CallObjectMethod) extends UserCommand
+case class ObjectRequestCommand(domainId: String, objectId: String, objectCommand: EveStructuredObjectCommand, command: String = CallObjectMethod) extends UserCommand
+case class EvaluateCommand(text: String, command: String = Evaluate) extends UserCommand
 case class PingCommand(command: String = Ping) extends UserCommand
 
 object UserCommand {
   import com.ideal.evecore.io.Serializers.Formats
 
+  val Evaluate = "EVAL"
   val RegisterReceiver = "RRCV"
   val RegisterContext = "RCTX"
   val CallReceiverMethod = "CRMT"

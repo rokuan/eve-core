@@ -4,12 +4,15 @@ import java.net.Socket
 
 import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject}
 import com.ideal.evecore.common.Conversions._
+import com.ideal.evecore.io.Serializers
 import com.ideal.evecore.io.command._
 
 /**
   * Created by Christophe on 05/03/2017.
   */
-class RemoteEveStructuredObject(val contextId: String, val objectId: String, protected val socket: Socket) extends EveStructuredObject with StreamUtils {
+class RemoteEveStructuredObject(val domainId: String, val objectId: String, protected val socket: Socket) extends EveStructuredObject with StreamUtils {
+  implicit val formats = Serializers.buildRemoteFormats(domainId, socket)
+
   override def getType(): String = safe {
     writeCommand(GetTypeCommand())
     readValue()
@@ -44,7 +47,7 @@ class RemoteEveStructuredObject(val contextId: String, val objectId: String, pro
   }
 
   protected def writeCommand(command: EveStructuredObjectCommand) = {
-    writeUserCommand(ObjectRequestCommand(contextId, objectId, command))
+    writeUserCommand(ObjectRequestCommand(domainId, objectId, command))
   }
 }
 

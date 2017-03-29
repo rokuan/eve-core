@@ -1,5 +1,6 @@
 package com.ideal.evecore.common
 
+import com.ideal.evecore.interpreter.{EveFailureObject, EveSuccessObject, EveObject, EveResultObject}
 import com.ideal.evecore.io.message.Result
 
 import scala.util.{Failure, Success, Try}
@@ -23,5 +24,11 @@ object Conversions {
   implicit def resultToTry[T >: Null](r: Result[T]): Try[T] = r.success match {
     case true => Success(r.value)
     case _ => Failure(new Exception(r.error))
+  }
+
+  implicit def eveResultToResult(r: EveResultObject): Result[EveObject] = r match {
+    case EveSuccessObject(v) => Result.Ok(v)
+    case EveFailureObject(e) => Result.Ko(e)
+    case _ => Result.Ko("Undefined result")
   }
 }

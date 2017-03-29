@@ -1,7 +1,7 @@
 package com.ideal.evecore.io.command
 
 import ContextCommand._
-import org.json4s.{DefaultFormats, Extraction, CustomSerializer}
+import org.json4s.{Extraction, CustomSerializer}
 import org.json4s.JsonAST.JObject
 
 /**
@@ -9,13 +9,13 @@ import org.json4s.JsonAST.JObject
  */
 trait ContextCommand
 
-case class FindItemByIdCommand(id: String, command: String = FindItemById) extends ContextCommand
+case class FindItemByIdCommand(id: String, command: String = FindItemById) extends ContextCommand with ReceiverCommand
 case class FindOneItemOfTypeCommand(itemType: String, command: String = FindOneItemOfType) extends ContextCommand
 case class FindItemsOfTypeCommand(itemType: String, command: String = FindItemsOfType) extends ContextCommand
-case class ObjectCommand(objectId: String, objectCommand: EveStructuredObjectCommand, command: String = ObjectRequest) extends ContextCommand
+case class ObjectCommand(objectId: String, objectCommand: EveStructuredObjectCommand, command: String = ObjectRequest) extends ContextCommand with ReceiverCommand
 
 object ContextCommand {
-  implicit val userCommandDefaultFormats = DefaultFormats
+  import com.ideal.evecore.io.Serializers.Formats
 
   val ContextCommand = "CCMD"
   val FindItemsOfType = "FTYP"

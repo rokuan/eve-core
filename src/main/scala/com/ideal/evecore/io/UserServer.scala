@@ -5,14 +5,16 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.ideal.evecore.interpreter.{Environment, Evaluator}
 import com.ideal.evecore.interpreter.remote.{BasicSocketUtils, RemoteContext, RemoteReceiver, StreamUtils}
-import com.ideal.evecore.io.command.{RegisterReceiverCommand, RegisterContextCommand, UserCommand}
+import com.ideal.evecore.io.command.{EvaluateCommand, RegisterReceiverCommand, RegisterContextCommand, UserCommand}
 import com.ideal.evecore.universe.World
 import com.ideal.evecore.users.Session
+import com.rokuan.calliopecore.parser.AbstractParser
 import org.json4s.DefaultFormats
 import org.json4s.jackson.Serialization
 
 import scala.util.Try
 import scala.util.control.Breaks
+import com.ideal.evecore.common.Conversions._
 
 /**
   * Created by Christophe on 26/03/2017.
@@ -34,7 +36,7 @@ abstract class UserServer[T <: Session](val port: Int) extends Thread with AutoC
 
       authenticate(login, password).map { s =>
         wrapper.writeValue(true)
-        val t = connectUser(s)
+        val t = connectUser(client, s)
         t.start()
       }.getOrElse {
         wrapper.writeValue(false)
@@ -44,7 +46,7 @@ abstract class UserServer[T <: Session](val port: Int) extends Thread with AutoC
   }
 
   def authenticate(login: String, password: String): Try[T]
-  def connectUser(user: T): UserSocket[T]
+  def connectUser(socket: Socket, user: T): UserSocket[T]
 
   override def close(): Unit = {
     try { server.close() } catch { case _: Throwable => }
@@ -57,6 +59,8 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   protected val environment: Environment
   protected val world: World
   protected val evaluator: Evaluator
+  protected val parser: AbstractParser
+
   private val running = new AtomicBoolean(true)
 
   private val receivers = collection.mutable.Map[String, RemoteReceiver]()
@@ -72,10 +76,19 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
         cmd match {
           case _: RegisterContextCommand => registerContext()
           case _: RegisterReceiverCommand => registerReceiver()
+          case ec: EvaluateCommand => evaluate(ec.text)
           case null => running.set(false)
           case _ =>
         }
       }.getOrElse(running.set(false))
+    }
+  }
+
+  private def evaluate(text: String) = Try {
+    safe {
+      val obj = parser.parseText(text)
+      val result = evaluator.eval(obj)
+      writeResultValue(result)
     }
   }
 

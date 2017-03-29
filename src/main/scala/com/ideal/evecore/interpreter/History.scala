@@ -4,9 +4,9 @@ package com.ideal.evecore.interpreter
   * Created by Christophe on 05/02/2017.
   */
 trait History {
-  def addItem(o: EveObject): Unit
-  def addPlace(o: EveObject): Unit
-  def getLastItem(): Option[EveObject]
-  def getLastItemOfType(t: String): Option[EveObject]
-  def getLastPlace(): Option[EveObject]
+  def addItem(o: EveStructuredObject): Unit
+  def addPlace(o: EveStructuredObject): Unit
+  def getLastItem(): Option[EveStructuredObject]
+  def getLastItemOfType(t: String): Option[EveStructuredObject]
+  def getLastPlace(): Option[EveStructuredObject]
 }

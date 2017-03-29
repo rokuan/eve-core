@@ -3,7 +3,8 @@ package com.ideal.evecore.interpreter.remote
 import java.net.Socket
 
 import com.ideal.evecore.common.Conversions._
-import com.ideal.evecore.interpreter.{QueryContext, EveStructuredObject, EveObjectList, Context}
+import com.ideal.evecore.interpreter._
+import com.ideal.evecore.io.Serializers
 import com.ideal.evecore.io.command._
 
 import scala.util.{Failure, Success, Try}
@@ -12,7 +13,9 @@ import scala.util.{Failure, Success, Try}
 /**
  * Created by Christophe on 05/03/2017.
  */
-class RemoteContext(protected val id: String, protected val socket: Socket) extends QueryContext with RemoteEndPoint {
+class RemoteContext(protected val id: String, protected val socket: Socket) extends Context with QuerySource with StreamUtils {
+  implicit val formats = Serializers.buildRemoteFormats(id, socket)
+
   override def findItemsOfType(t: String): Option[EveObjectList] = Try {
     safe {
       writeCommand(FindItemsOfTypeCommand(t))
