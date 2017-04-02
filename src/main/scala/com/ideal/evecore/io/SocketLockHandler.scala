@@ -27,9 +27,9 @@ class SocketLockHandler(val socket: Socket) extends BasicSocketUtils with Runnab
       try {
         val token = is.read()
         commandAvailable.set(token)
-        if (token == SocketHandler.CommandToken) {
+        if (token == CommandToken) {
           commandCondition.signal()
-        } else if (token == SocketHandler.ResultToken) {
+        } else if (token == ResultToken) {
           resultCondition.signal()
         } else {
           running.set(false)
