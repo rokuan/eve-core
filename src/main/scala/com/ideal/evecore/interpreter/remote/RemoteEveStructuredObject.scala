@@ -1,53 +1,49 @@
 package com.ideal.evecore.interpreter.remote
 
-import java.net.Socket
 
 import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject}
 import com.ideal.evecore.common.Conversions._
-import com.ideal.evecore.io.Serializers
+import com.ideal.evecore.io.{Serializers, SocketLockHandler}
 import com.ideal.evecore.io.command._
 
 /**
   * Created by Christophe on 05/03/2017.
   */
-class RemoteEveStructuredObject(val domainId: String, val objectId: String, protected val socket: Socket) extends EveStructuredObject with StreamUtils {
-  implicit val formats = Serializers.buildRemoteFormats(domainId, socket)
+class RemoteEveStructuredObject(val domainId: String, val objectId: String, protected val handler: SocketLockHandler) extends EveStructuredObject {
+  implicit val formats = Serializers.buildRemoteFormats(domainId, handler)
 
-  override def getType(): String = safe {
+  override def getType(): String = handler.resultProcess {
     writeCommand(GetTypeCommand())
-    readValue()
+    handler.readStringResponse()
   }
 
-  override def set(field: String, value: EveObject): Unit = safe {
-    writeCommand(SetFieldCommand(field, value))
-  }
+  override def set(field: String, value: EveObject): Unit = writeCommand(SetFieldCommand(field, value))
 
-  override def get(field: String): Option[EveObject] = safe {
+  override def get(field: String): Option[EveObject] = handler.resultProcess {
     writeCommand(GetFieldCommand(field))
-    readResultValue[EveObject]
+    handler.readResultResponse[EveObject]
   }
 
-  override def getState(state: String): Option[String] = safe {
+  override def getState(state: String): Option[String] = handler.resultProcess {
     writeCommand(GetStateCommand(state))
-    readResultValue[String]
+    handler.readResultResponse[String]
   }
 
-  override def setState(state: String, value: String): Unit = safe {
-    writeCommand(SetStateCommand(state, value))
-  }
+  override def setState(state: String, value: String): Unit = writeCommand(SetStateCommand(state, value))
 
-  override def has(field: String): Boolean = safe {
+  override def has(field: String): Boolean = handler.resultProcess {
     writeCommand(HasFieldCommand(field))
-    readTest()
+    handler.readBooleanResponse()
   }
 
-  override def hasState(state: String): Boolean = safe {
+  override def hasState(state: String): Boolean = handler.resultProcess {
     writeCommand(HasStateCommand(state))
-    readTest()
+    handler.readBooleanResponse()
   }
 
   protected def writeCommand(command: EveStructuredObjectCommand) = {
-    writeUserCommand(ObjectRequestCommand(domainId, objectId, command))
+    val userCommand = ObjectRequestCommand(domainId, objectId, command)
+    handler.writeUserCommand(userCommand)
   }
 }
 

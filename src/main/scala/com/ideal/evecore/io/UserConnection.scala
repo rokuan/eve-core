@@ -8,12 +8,11 @@ import com.ideal.evecore.interpreter.remote.{ObjectStreamSource, StreamReceiver,
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.receiver.Receiver
 import org.json4s.DefaultFormats
-import org.json4s.jackson.Serialization
 
 
 /**
- * Created by Christophe on 26/03/2017.
- */
+  * Created by Christophe on 26/03/2017.
+  */
 class UserConnection(val host: String, val port: Int, val credentials: Credentials) extends Thread with StreamUtils {
   implicit val formats = DefaultFormats + UserCommand.UserCommandSerializer
 
@@ -21,30 +20,35 @@ class UserConnection(val host: String, val port: Int, val credentials: Credentia
   protected val contexts = collection.mutable.Map[String, StreamContext]()
   protected val receivers = collection.mutable.Map[String, StreamReceiver]()
   protected val sources = collection.mutable.Map[String, ObjectStreamSource]()
+
+  protected val handler = new SocketLockHandler(socket)
+  // TODO: better syntax
+  new Thread(handler).start()
+
   private val running = new AtomicBoolean(true)
   private val logged = new AtomicBoolean(true)
 
   authenticate()
 
-  def registerReceiver(r: Receiver) = safe {
-    writeCommand(RegisterReceiverCommand())
-    val receiverId = readValue()
-    val streamReceiver = new StreamReceiver(receiverId, socket, r)
+  def registerReceiver(r: Receiver) = handler.resultProcess {
+    handler.writeUserCommand(RegisterReceiverCommand())
+    val receiverId = handler.readStringResponse()
+    val streamReceiver = new StreamReceiver(receiverId, handler, r)
     receivers.put(receiverId, streamReceiver)
     sources.put(receiverId, streamReceiver)
   }
 
-  def registerContext(c: Context) = safe {
-    writeCommand(RegisterContextCommand())
-    val contextId = readValue()
-    val streamContext = new StreamContext(contextId, socket, c)
+  def registerContext(c: Context) = handler.resultProcess {
+    handler.writeUserCommand(RegisterContextCommand())
+    val contextId = handler.readStringResponse()
+    val streamContext = new StreamContext(contextId, handler, c)
     contexts.put(contextId, streamContext)
     sources.put(contextId, streamContext)
   }
 
-  def evaluate(text: String) = safe {
-    writeCommand(EvaluateCommand(text))
-    readResultValue[EveObject]
+  def evaluate(text: String) = handler.resultProcess {
+    handler.writeUserCommand(EvaluateCommand(text))
+    handler.readObjectResponse[EveObject]
   }
 
   private def authenticate(): Unit = {
@@ -59,13 +63,14 @@ class UserConnection(val host: String, val port: Int, val credentials: Credentia
 
   override def run(): Unit = {
     while (running.get()) {
-      val command = readCommand()
-      command match {
-        case rrc: ReceiverRequestCommand => executeReceiverCommand(rrc)
-        case crc: ContextRequestCommand => executeContextCommand(crc)
-        case orc: ObjectRequestCommand => executeObjectCommand(orc)
-        case null => running.set(false)
-        case _ =>
+      handler.commandProcess { command =>
+        command match {
+          case rrc: ReceiverRequestCommand => executeReceiverCommand(rrc)
+          case crc: ContextRequestCommand => executeContextCommand(crc)
+          case orc: ObjectRequestCommand => executeObjectCommand(orc)
+          case null => running.set(false)
+          case _ =>
+        }
       }
     }
   }
@@ -82,16 +87,6 @@ class UserConnection(val host: String, val port: Int, val credentials: Credentia
   protected def executeObjectCommand(orc: ObjectRequestCommand) = {
     val delegateCommand = ObjectCommand(orc.objectId, orc.objectCommand)
     sources.get(orc.domainId).map(_.handleObjectCommand(delegateCommand))
-  }
-
-  protected def readCommand(): UserCommand = {
-    val json = readValue()
-    Serialization.read[UserCommand](json)
-  }
-
-  protected def writeCommand(command: UserCommand) = {
-    val json = Serialization.write[UserCommand](command)
-    writeValue(json)
   }
 }
 

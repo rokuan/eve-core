@@ -23,7 +23,7 @@ object Serializers {
   def buildBasicFormats() = DefaultFormats + UserCommand.UserCommandSerializer +
     ReceiverCommand.ReceiverCommandSerializer + ContextCommand.ContextCommandSerializer
 
-  def buildRemoteFormats(id: String, socket: Socket) = buildBasicFormats() + new EveObjectSerializer(id, socket) + new ResultSerializer[EveObject]()
+  def buildRemoteFormats(id: String, handler: SocketLockHandler) = buildBasicFormats() + new EveObjectSerializer(id, handler) + new ResultSerializer[EveObject]()
 
   implicit def numberToJDouble(n: java.lang.Number): JValue =
     if(n == math.floor(n.doubleValue())){
@@ -37,7 +37,7 @@ object Serializers {
     def readObject(o: JObject): T
   }
 
-  class EveObjectSerializer(val domainId: String, val socket: Socket) extends CustomSerializer[EveObject](data => ({
+  class EveObjectSerializer(val domainId: String, val handler: SocketLockHandler) extends CustomSerializer[EveObject](data => ({
     case JString(s) if s == NoneObjectString => NoneObject
     case JString(s) => s
     case JDouble(d) => EveNumberObject(d)
@@ -49,9 +49,9 @@ object Serializers {
       case "query" => {
         val sourceId = (o \ "__eve_domain_id").extract[String]
         val objectId = (o \ ObjectIdKey).extract[String]
-        new RemoteEveStructuredObject(sourceId, objectId, socket)
+        new RemoteEveStructuredObject(sourceId, objectId, handler)
       }
-      case "remote" => new RemoteEveStructuredObject(domainId, (o \ ObjectIdKey).extract[String], socket)
+      case "remote" => new RemoteEveStructuredObject(domainId, (o \ ObjectIdKey).extract[String], handler)
     }
     case JNull => null
   }, {

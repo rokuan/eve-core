@@ -4,8 +4,8 @@ import java.net.{ServerSocket, Socket}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.ideal.evecore.interpreter.{Environment, Evaluator}
-import com.ideal.evecore.interpreter.remote.{BasicSocketUtils, RemoteContext, RemoteReceiver, StreamUtils}
-import com.ideal.evecore.io.command.{EvaluateCommand, RegisterReceiverCommand, RegisterContextCommand, UserCommand}
+import com.ideal.evecore.interpreter.remote._
+import com.ideal.evecore.io.command.{EvaluateCommand, RegisterContextCommand, RegisterReceiverCommand, UserCommand}
 import com.ideal.evecore.universe.World
 import com.ideal.evecore.users.Session
 import com.rokuan.calliopecore.parser.AbstractParser
@@ -28,9 +28,7 @@ abstract class UserServer[T <: Session](val port: Int) extends Thread with AutoC
 
     while(running.get()){
       val client = server.accept()
-      val wrapper = new BasicSocketUtils {
-        override protected val socket: Socket = client
-      }
+      val wrapper = new SocketWrapper(client)
       val login = wrapper.readValue()
       val password = wrapper.readValue()
 
@@ -53,7 +51,7 @@ abstract class UserServer[T <: Session](val port: Int) extends Thread with AutoC
   }
 }
 
-abstract class UserSocket[T <: Session](protected val socket: Socket, protected val session: T) extends Thread with StreamUtils {
+abstract class UserSocket[T <: Session](protected val socket: Socket, protected val session: T) extends Thread /*with StreamUtils*/ {
   implicit val formats = DefaultFormats + UserCommand.UserCommandSerializer
 
   protected val environment: Environment
@@ -66,61 +64,61 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   private val receivers = collection.mutable.Map[String, RemoteReceiver]()
   private val contexts = collection.mutable.Map[String, RemoteContext]()
 
+  //private val handler = new SocketHandler(socket)
+  private val handler = new SocketLockHandler(socket)
+  // TODO: proper syntax
+  new Thread(handler).start()
+
   private final val idGenerator = new AtomicInteger(0)
 
   def getSession(): T = session
 
   override final def run(): Unit = {
     while(running.get()){
-      Try(readCommand()).map { cmd =>
-        cmd match {
-          case _: RegisterContextCommand => registerContext()
-          case _: RegisterReceiverCommand => registerReceiver()
-          case ec: EvaluateCommand => evaluate(ec.text)
-          case null => running.set(false)
-          case _ =>
+      Try {
+        handler.commandProcess { cmd =>
+          cmd match {
+            case _: RegisterContextCommand => registerContext()
+            case _: RegisterReceiverCommand => registerReceiver()
+            case ec: EvaluateCommand => evaluate(ec.text)
+            case null => running.set(false)
+            case _ =>
+          }
         }
       }.getOrElse(running.set(false))
     }
   }
 
-  private def evaluate(text: String) = Try {
-    safe {
-      val obj = parser.parseText(text)
-      val result = evaluator.eval(obj)
-      writeResultValue(result)
-    }
+  private def evaluate(text: String) = {
+    val obj = parser.parseText(text)
+    val result = evaluator.eval(obj)
+    handler.writeResultResponse(result)
   }
 
-  private def registerReceiver() = safe {
+  private def registerReceiver() = {
     val receiverId = freshId()
-    val remoteReceiver = new RemoteReceiver(receiverId, socket)
+    val remoteReceiver = new RemoteReceiver(receiverId, handler)
     receivers.put(receiverId, remoteReceiver)
     world.registerReceiver(remoteReceiver)
-    writeValue(receiverId)
+    handler.writeStringResponse(receiverId)
   }
 
-  private def unregisterReceiver() = safe {
-    val receiverId = readValue()
+  private def unregisterReceiver() = {
+    val receiverId = handler.readStringResponse()
     receivers.get(receiverId).map(world.unregisterReceiver)
   }
 
-  private def registerContext() = safe {
+  private def registerContext() = {
     val contextId = freshId()
-    val remoteContext = new RemoteContext(contextId, socket)
+    val remoteContext = new RemoteContext(contextId, handler)
     contexts.put(contextId, remoteContext)
     environment.addContext(remoteContext)
-    writeValue(contextId)
+    handler.writeStringResponse(contextId)
   }
 
-  private def unregisterContext() = safe {
-    val contextId = readValue()
+  private def unregisterContext() = {
+    val contextId = handler.readStringResponse()
     contexts.get(contextId).map(environment.removeContext)
-  }
-
-  protected def readCommand(): UserCommand = {
-    val json = readValue()
-    Serialization.read[UserCommand](json)
   }
 
   private final def freshId(): String = idGenerator.incrementAndGet().toString

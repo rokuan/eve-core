@@ -4,7 +4,7 @@ import java.net.Socket
 
 import com.ideal.evecore.common.Conversions._
 import com.ideal.evecore.interpreter._
-import com.ideal.evecore.io.Serializers
+import com.ideal.evecore.io.{Serializers, SocketLockHandler}
 import com.ideal.evecore.io.command._
 
 import scala.util.{Failure, Success, Try}
@@ -13,13 +13,13 @@ import scala.util.{Failure, Success, Try}
 /**
  * Created by Christophe on 05/03/2017.
  */
-class RemoteContext(protected val id: String, protected val socket: Socket) extends Context with QuerySource with StreamUtils {
-  implicit val formats = Serializers.buildRemoteFormats(id, socket)
+class RemoteContext(protected val id: String, protected val handler: SocketLockHandler) extends Context with QuerySource {
+  implicit val formats = Serializers.buildRemoteFormats(id, handler)
 
   override def findItemsOfType(t: String): Option[EveObjectList] = Try {
-    safe {
+    handler.resultProcess {
       writeCommand(FindItemsOfTypeCommand(t))
-      readResultValue[EveObjectList]
+      handler.readResultResponse[EveObjectList]
     }
   } match {
     case Success(o) => o
@@ -33,22 +33,22 @@ class RemoteContext(protected val id: String, protected val socket: Socket) exte
    * @return A single object matching this type if some
    */
   override def findOneItemOfType(t: String): Option[EveStructuredObject] = Try {
-    safe {
+    handler.resultProcess {
       writeCommand(FindOneItemOfTypeCommand(t))
-      readResultValue[EveStructuredObject]
+      handler.readResultResponse[EveStructuredObject]
     }
   } match {
     case Success(o) => o
     case Failure(_: Throwable) => Option.empty[EveStructuredObject]
   }
 
-  override def findById(id: String): Option[EveStructuredObject] = safe {
+  override def findById(id: String): Option[EveStructuredObject] = handler.resultProcess {
     writeCommand(FindItemByIdCommand(id))
-    readResultValue[EveStructuredObject]
+    handler.readResultResponse[EveStructuredObject]
   }
 
   protected def writeCommand(command: ContextCommand) = {
     val userCommand = ContextRequestCommand(id, command)
-    writeUserCommand(userCommand)
+    handler.writeUserCommand(userCommand)
   }
 }

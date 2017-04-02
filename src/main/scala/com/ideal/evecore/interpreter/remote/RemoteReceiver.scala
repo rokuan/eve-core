@@ -1,10 +1,9 @@
 package com.ideal.evecore.interpreter.remote
 
-import java.net.Socket
 
 import com.ideal.evecore.common.Mapping.Mapping
-import com.ideal.evecore.interpreter.{EveStructuredObject, QuerySource, EveObject}
-import com.ideal.evecore.io.Serializers
+import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject, QuerySource}
+import com.ideal.evecore.io.{Serializers, SocketLockHandler}
 import com.ideal.evecore.io.command.ReceiverCommand
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.ValueMatcher
@@ -16,22 +15,22 @@ import scala.util.Try
 /**
   * Created by Christophe on 09/03/17.
   */
-class RemoteReceiver(protected val id: String, protected val socket: Socket) extends Receiver with QuerySource with StreamUtils {
-  implicit val formats = Serializers.buildRemoteFormats(id, socket)
+class RemoteReceiver(protected val id: String, protected val handler: SocketLockHandler) extends Receiver with QuerySource {
+  implicit val formats = Serializers.buildRemoteFormats(id, handler)
 
   /**
     * Called to initialize this receiver
     */
-  override def initReceiver(): Unit = safe(writeCommand(InitReceiverCommand()))
+  override def initReceiver(): Unit = writeCommand(InitReceiverCommand())
 
   /**
     * Retrieves this receiver's name
     *
     * @return This receiver's name
     */
-  override def getReceiverName(): String = safe {
+  override def getReceiverName(): String = handler.resultProcess {
     writeCommand(GetReceiverNameCommand())
-    readValue()
+    handler.readStringResponse()
   }
 
   /**
@@ -39,9 +38,9 @@ class RemoteReceiver(protected val id: String, protected val socket: Socket) ext
     *
     * @return A mapping containing the definition field of this receiver
     */
-  override def getMappings(): Mapping[ValueMatcher] = safe {
+  override def getMappings(): Mapping[ValueMatcher] = handler.resultProcess {
     writeCommand(GetMappingsCommand())
-    readItem[Mapping[ValueMatcher]]
+    handler.readObjectResponse[Mapping[ValueMatcher]]
   }
 
   /**
@@ -50,23 +49,23 @@ class RemoteReceiver(protected val id: String, protected val socket: Socket) ext
     * @param message The message to process
     * @return The result of the operation
     */
-  override def handleMessage(message: EveObjectMessage): Try[EveObject] = safe {
+  override def handleMessage(message: EveObjectMessage): Try[EveObject] = handler.resultProcess {
     writeCommand(HandleMessageCommand(message))
-    readResultValue[EveObject]
+    handler.readResultResponse[EveObject]
   }
 
   /**
     * Called when destroying this receiver, to make sure everything is cleaned up
     */
-  override def destroyReceiver(): Unit = safe { writeCommand(DestroyReceiverCommand()) }
+  override def destroyReceiver(): Unit = writeCommand(DestroyReceiverCommand())
   
-  override def findById(id: String): Option[EveStructuredObject] = safe {
+  override def findById(id: String): Option[EveStructuredObject] = handler.resultProcess {
     writeCommand(FindItemByIdCommand(id))
-    readResultValue[EveStructuredObject]
+    handler.readResultResponse[EveStructuredObject]
   }
 
   protected def writeCommand(command: ReceiverCommand) = {
     val userCommand = ReceiverRequestCommand(id, command)
-    writeUserCommand(userCommand)
+    handler.writeUserCommand(userCommand)
   }
 }
