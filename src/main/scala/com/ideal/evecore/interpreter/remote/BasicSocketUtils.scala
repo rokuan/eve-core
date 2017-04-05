@@ -7,8 +7,8 @@ import java.net.Socket
   */
 trait BasicSocketUtils {
   protected val socket: Socket
-  protected val is = socket.getInputStream
-  protected val os = socket.getOutputStream
+  protected lazy val is = socket.getInputStream
+  protected lazy val os = socket.getOutputStream
 
   protected def writeValue(b: Boolean) = {
     os.write(if(b){ 1 } else { 0 })
@@ -43,7 +43,7 @@ trait BasicSocketUtils {
     val buffer = new StringBuilder()
 
     while(length > 0){
-      val read = is.read(block)
+      val read = is.read(block, 0, math.min(length, block.length))
 
       if(read > 0) {
         buffer.append(new String(block, 0, read))

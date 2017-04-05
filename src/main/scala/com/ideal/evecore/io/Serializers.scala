@@ -23,7 +23,7 @@ object Serializers {
   def buildBasicFormats() = DefaultFormats + UserCommand.UserCommandSerializer +
     ReceiverCommand.ReceiverCommandSerializer + ContextCommand.ContextCommandSerializer
 
-  def buildRemoteFormats(id: String, handler: SocketLockHandler) = buildBasicFormats() + new EveObjectSerializer(id, handler) + new ResultSerializer[EveObject]()
+  def buildRemoteFormats(id: String, handler: StreamHandler) = buildBasicFormats() + new EveObjectSerializer(id, handler) + new ResultSerializer[EveObject]()
 
   implicit def numberToJDouble(n: java.lang.Number): JValue =
     if(n == math.floor(n.doubleValue())){
@@ -37,7 +37,7 @@ object Serializers {
     def readObject(o: JObject): T
   }
 
-  class EveObjectSerializer(val domainId: String, val handler: SocketLockHandler) extends CustomSerializer[EveObject](data => ({
+  class EveObjectSerializer(val domainId: String, val handler: StreamHandler) extends CustomSerializer[EveObject](data => ({
     case JString(s) if s == NoneObjectString => NoneObject
     case JString(s) => s
     case JDouble(d) => EveNumberObject(d)

@@ -3,9 +3,10 @@ package com.ideal.evecore.io
 import java.net.{ServerSocket, Socket}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
-import com.ideal.evecore.interpreter.{Environment, Evaluator}
+import com.ideal.evecore.interpreter.{EveObject, Environment, Evaluator}
 import com.ideal.evecore.interpreter.remote._
-import com.ideal.evecore.io.command.{EvaluateCommand, RegisterContextCommand, RegisterReceiverCommand, UserCommand}
+import com.ideal.evecore.io.command._
+import com.ideal.evecore.io.message.Result
 import com.ideal.evecore.universe.World
 import com.ideal.evecore.users.Session
 import com.rokuan.calliopecore.parser.AbstractParser
@@ -17,8 +18,8 @@ import scala.util.control.Breaks
 import com.ideal.evecore.common.Conversions._
 
 /**
-  * Created by Christophe on 26/03/2017.
-  */
+ * Created by Christophe on 26/03/2017.
+ */
 abstract class UserServer[T <: Session](val port: Int) extends Thread with AutoCloseable {
   protected val server = new ServerSocket(port)
   private val running = new AtomicBoolean(true)
@@ -65,7 +66,8 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   private val contexts = collection.mutable.Map[String, RemoteContext]()
 
   //private val handler = new SocketHandler(socket)
-  private val handler = new SocketLockHandler(socket)
+  //private val handler = new SocketLockHandler(socket)
+  private val handler = new StreamHandler(socket)
   // TODO: proper syntax
   new Thread(handler).start()
 
@@ -76,26 +78,29 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   override final def run(): Unit = {
     while(running.get()){
       Try {
-        handler.commandProcess { cmd =>
-          cmd match {
-            case _: RegisterContextCommand => registerContext()
-            case _: RegisterReceiverCommand => registerReceiver()
-            case ec: EvaluateCommand => evaluate(ec.text)
-            case null => running.set(false)
-            case _ =>
-          }
+        val request = handler.nextCommand()
+        implicit val requestId = request._1
+        request._2 match {
+          case _: RegisterContextCommand => registerContext()
+          case _: RegisterReceiverCommand => registerReceiver()
+          case urc: UnregisterReceiverCommand => unregisterReceiver(urc.receiverId)
+          case ucc: UnregisterContextCommand => unregisterContext(ucc.contextId)
+          case ec: EvaluateCommand => evaluate(ec.text)
+          case null => running.set(false)
+          case _ =>
         }
       }.getOrElse(running.set(false))
     }
   }
 
-  private def evaluate(text: String) = {
+  private def evaluate(text: String)(implicit requestId: Long) = {
     val obj = parser.parseText(text)
     val result = evaluator.eval(obj)
-    handler.writeResultResponse(result)
+    // TODO: in a big Try
+    handler.writeResponse[Result[EveObject]](result)
   }
 
-  private def registerReceiver() = {
+  private def registerReceiver()(implicit requestId: Long) = {
     val receiverId = freshId()
     val remoteReceiver = new RemoteReceiver(receiverId, handler)
     receivers.put(receiverId, remoteReceiver)
@@ -103,12 +108,9 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
     handler.writeStringResponse(receiverId)
   }
 
-  private def unregisterReceiver() = {
-    val receiverId = handler.readStringResponse()
-    receivers.get(receiverId).map(world.unregisterReceiver)
-  }
+  private def unregisterReceiver(receiverId: String) = receivers.get(receiverId).map(world.unregisterReceiver)
 
-  private def registerContext() = {
+  private def registerContext()(implicit requestId: Long) = {
     val contextId = freshId()
     val remoteContext = new RemoteContext(contextId, handler)
     contexts.put(contextId, remoteContext)
@@ -116,10 +118,7 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
     handler.writeStringResponse(contextId)
   }
 
-  private def unregisterContext() = {
-    val contextId = handler.readStringResponse()
-    contexts.get(contextId).map(environment.removeContext)
-  }
+  private def unregisterContext(contextId: String) = contexts.get(contextId).map(environment.removeContext)
 
   private final def freshId(): String = idGenerator.incrementAndGet().toString
 }
