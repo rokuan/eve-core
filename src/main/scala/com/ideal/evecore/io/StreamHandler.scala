@@ -7,13 +7,17 @@ import java.util.concurrent.atomic.{AtomicLong, AtomicBoolean}
 import com.ideal.evecore.interpreter.remote.StreamUtils
 import StreamHandler._
 import com.ideal.evecore.io.command.UserCommand
+import com.ideal.evecore.util.{PendingAtomicBoolean, PendingAtomicReference}
 import org.json4s.Formats
+import org.json4s.jackson.Serialization
 
 class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
   implicit val formats = Serializers.buildBasicFormats()
 
   protected val running = new AtomicBoolean(true)
-  protected val pendingOperations = collection.mutable.Map[Long, Thread]()
+  protected val objectResults = collection.mutable.Map[Long, PendingAtomicReference[String]]()
+  protected val stringResults = collection.mutable.Map[Long, PendingAtomicReference[String]]()
+  protected val booleanResults = collection.mutable.Map[Long, PendingAtomicBoolean]()
   protected val stamp = new AtomicLong(0)
   protected val commands = new LinkedBlockingQueue[(Long, UserCommand)](1)
 
@@ -24,50 +28,77 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
 
         token match {
           case CommandToken => handleUserCommand()
-          case AnswerToken => handleAnswer()
+          case BooleanResult => handleBooleanAnswer()
+          case StringResult => handleStringAnswer()
+          case ObjectResult => handleObjectAnswer()
           case _ =>
         }
       }
     }
   }
 
-  def resultOperation[T <: AnyRef](command: UserCommand)(implicit formats: Formats, m: Manifest[T]): T = {
-    val operationId = stamp.incrementAndGet()
-    val currentThread = Thread.currentThread()
-    os.synchronized {
-      os.write(CommandToken)
-      pendingOperations.put(operationId, currentThread)
-      writeValue(operationId.toString)
-      writeUserCommand(command)
-      currentThread.synchronized(currentThread.wait())
-      readItem[T]
+  protected def handleBooleanAnswer() = {
+    val operationId = readValue().toLong
+    val test = readTest()
+    booleanResults.remove(operationId).map { reference =>
+      reference.set(test)
+      reference.synchronized(reference.notify())
     }
   }
 
-  def stringOperation(command: UserCommand)(implicit formats: Formats): String = {
-    val operationId = stamp.incrementAndGet()
-    val currentThread = Thread.currentThread()
-    os.synchronized {
-      os.write(CommandToken)
-      pendingOperations.put(operationId, currentThread)
-      writeValue(operationId.toString)
-      writeUserCommand(command)
-      currentThread.synchronized(currentThread.wait())
-      readValue()
+  protected def handleStringAnswer() = {
+    val operationId = readValue().toLong
+    val value = readValue()
+    stringResults.remove(operationId).map { reference =>
+      reference.set(value)
+      reference.synchronized(reference.notify)
+    }
+  }
+
+  protected def handleObjectAnswer() = {
+    val operationId = readValue().toLong
+    val json = readValue()
+    objectResults.remove(operationId).map { reference =>
+      reference.set(json)
+      reference.synchronized(reference.notify)
     }
   }
 
   def booleanOperation(command: UserCommand)(implicit formats: Formats): Boolean = {
     val operationId = stamp.incrementAndGet()
-    val currentThread = Thread.currentThread()
+    val value = new PendingAtomicBoolean()
     os.synchronized {
+      booleanResults.put(operationId, value)
       os.write(CommandToken)
-      pendingOperations.put(operationId, currentThread)
       writeValue(operationId.toString)
       writeUserCommand(command)
-      Thread.currentThread().wait
-      readTest()
     }
+    value.get()
+  }
+
+  def stringOperation(command: UserCommand)(implicit formats: Formats): String = {
+    val operationId = stamp.incrementAndGet()
+    val value = new PendingAtomicReference[String]()
+    os.synchronized {
+      stringResults.put(operationId, value)
+      os.write(CommandToken)
+      writeValue(operationId.toString)
+      writeUserCommand(command)
+    }
+    value.get()
+  }
+
+  def resultOperation[T <: AnyRef](command: UserCommand)(implicit formats: Formats, m: Manifest[T]): T = {
+    val operationId = stamp.incrementAndGet()
+    val currentThread = Thread.currentThread()
+    val value = new PendingAtomicReference[String]()
+    os.synchronized {
+      objectResults.put(operationId, value)
+      os.write(CommandToken)
+      writeValue(operationId.toString)
+      writeUserCommand(command)
+    }
+    Serialization.read[T](value.get())
   }
 
   def commandOperation(command: UserCommand)(implicit formats: Formats): Unit = {
@@ -87,25 +118,20 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
     commands.offer(requestId, command)
   }
 
-  def handleAnswer(): Unit = {
-    val answerId = readValue()
-    pendingOperations.remove(answerId.toLong).foreach(t => t.synchronized(t.notify()))
-  }
-
   def writeResponse[T <: AnyRef](response: T)(implicit requestId: Long, formats: Formats) = os.synchronized {
-    os.write(AnswerToken)
+    os.write(ObjectResult)
     writeValue(requestId.toString)
     writeItem[T](response)
   }
 
   def writeStringResponse(response: String)(implicit requestId: Long) = os.synchronized {
-    os.write(AnswerToken)
+    os.write(StringResult)
     writeValue(requestId.toString)
     writeValue(response)
   }
 
   def writeBooleanResponse(response: Boolean)(implicit requestId: Long) = os.synchronized {
-    os.write(AnswerToken)
+    os.write(BooleanResult)
     writeValue(requestId.toString)
     writeValue(response)
   }
@@ -113,5 +139,7 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
 
 object StreamHandler {
   val CommandToken = 0
-  val AnswerToken = 1
+  val BooleanResult = 1
+  val StringResult = 2
+  val ObjectResult = 3
 }

@@ -30,7 +30,7 @@ trait BasicSocketUtils {
 
   private final def readSize() = {
     val data = new Array[Byte](4)
-    if(is.read(data) != 1) {
+    if(is.read(data) != -1) {
       data.zipWithIndex.foldLeft(0) { case (acc, (size, index)) => acc + ((size & 0xFF) << (index * 8)) }
     } else {
       0
