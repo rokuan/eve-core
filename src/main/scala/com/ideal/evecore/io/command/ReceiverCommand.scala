@@ -1,6 +1,7 @@
 package com.ideal.evecore.io.command
 
 import ReceiverCommand._
+import QueryCommand._
 import com.ideal.evecore.universe.receiver.EveObjectMessage
 import org.json4s.{Extraction, CustomSerializer}
 import org.json4s.JsonAST.JObject
@@ -33,8 +34,12 @@ object ReceiverCommand {
       case HandleMessage => o.extract[HandleMessageCommand]
       case GetReceiverName => GetReceiverNameCommand()
       case GetMappings => GetMappingsCommand()
+      case FindItemById => o.extract[FindItemByIdCommand]
+      case ObjectRequest => o.extract[ObjectCommand]
     }
   }, {
+    case fibi: FindItemByIdCommand => Extraction.decompose(fibi)
+    case oc: ObjectCommand => Extraction.decompose(oc)
     case irc: InitReceiverCommand => Extraction.decompose(irc)
     case drc: DestroyReceiverCommand => Extraction.decompose(drc)
     case hmc: HandleMessageCommand => Extraction.decompose(hmc)

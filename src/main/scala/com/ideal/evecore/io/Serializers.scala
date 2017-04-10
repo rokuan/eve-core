@@ -1,7 +1,5 @@
 package com.ideal.evecore.io
 
-import java.net.Socket
-
 import com.ideal.evecore.interpreter._
 import com.ideal.evecore.interpreter.remote.RemoteEveStructuredObject
 import com.ideal.evecore.io.command.{ContextCommand, ReceiverCommand, UserCommand}
@@ -23,7 +21,7 @@ object Serializers {
   def buildBasicFormats() = DefaultFormats + UserCommand.UserCommandSerializer +
     ReceiverCommand.ReceiverCommandSerializer + ContextCommand.ContextCommandSerializer
 
-  def buildRemoteFormats(id: String, handler: StreamHandler) = buildBasicFormats() + new EveObjectSerializer(id, handler) + new ResultSerializer[EveObject]()
+  def buildRemoteFormats(handler: StreamHandler, id: String = "UNKNOWN") = buildBasicFormats() + new EveObjectSerializer(id, handler) + new ResultSerializer[EveObject]()
 
   implicit def numberToJDouble(n: java.lang.Number): JValue =
     if(n == math.floor(n.doubleValue())){
@@ -44,25 +42,26 @@ object Serializers {
     case JInt(i) => EveNumberObject(i)
     case JArray(l) => EveObjectList(l.map(_.extract[EveObject]))
     case JBool(b) => EveBooleanObject(b)
-    case o: JObject => (o \ "objectType").extract[String] match {
-      case "mapping" => EveMappingObject(o.obj.map { case (key, value) => (key -> value.extract[EveObject]) }.toMap)
-      case "query" => {
-        val sourceId = (o \ "__eve_domain_id").extract[String]
+    case o: JObject => (o \ "type").extract[String] match {
+      case "MAPPING" =>
+        val content = (o \ "value").asInstanceOf[JObject]
+        EveMappingObject(content.obj.map { case (key, value) => (key -> value.extract[EveObject]) }.toMap)
+      case "REMOTE" => {
+        val sourceId = (o \ DomainIdKey).extract[String]
         val objectId = (o \ ObjectIdKey).extract[String]
         new RemoteEveStructuredObject(sourceId, objectId, handler)
       }
-      case "remote" => new RemoteEveStructuredObject(domainId, (o \ ObjectIdKey).extract[String], handler)
     }
     case JNull => null
   }, {
     case NoneObject => JString(NoneObjectString)
     case o: EveQueryObject =>
-      ("objectType" -> JString("query")) ~ (ObjectIdKey -> o.id) ~ ("__eve_domain_id" -> domainId)
+      ("type" -> JString("REMOTE")) ~ (ObjectIdKey -> o.id) ~ (DomainIdKey -> domainId)
     case EveMappingObject(m) =>
-      ("objectType" -> "mapping") ~
-        JObject(m.map { case (key, value) =>  (key -> Extraction.decompose(value)) }.toList)
+      ("type" -> "MAPPING") ~
+        ("value" -> JObject(m.map { case (key, value) =>  (key -> Extraction.decompose(value)) }.toList))
     case o: RemoteEveStructuredObject =>
-      ("objectType" -> JString("remote")) ~
+      ("type" -> JString("REMOTE")) ~
         (ObjectIdKey -> o.objectId) ~
         (DomainIdKey -> o.domainId)
     case EveStringObject(s) => JString(s)

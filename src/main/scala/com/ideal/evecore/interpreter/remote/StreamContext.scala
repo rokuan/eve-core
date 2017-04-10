@@ -3,7 +3,7 @@ package com.ideal.evecore.interpreter.remote
 
 import com.ideal.evecore.interpreter._
 import com.ideal.evecore.io.message.Result
-import com.ideal.evecore.io.{StreamHandler, Serializers, SocketLockHandler}
+import com.ideal.evecore.io.{StreamHandler, Serializers}
 import com.ideal.evecore.io.command.ObjectCommand
 import com.ideal.evecore.io.command._
 
@@ -14,7 +14,7 @@ import com.ideal.evecore.common.Conversions._
   * Created by Christophe on 07/03/17.
   */
 class StreamContext(private val contextId: String, protected val handler: StreamHandler, val context: Context) extends Context with QuerySource with ObjectStreamSource {
-  override implicit val formats = Serializers.buildRemoteFormats(contextId, handler)
+  override implicit val formats = Serializers.buildRemoteFormats(handler, contextId)
 
   /**
     * Reads the commands that are sent from the server

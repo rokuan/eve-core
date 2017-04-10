@@ -12,7 +12,7 @@ import com.ideal.evecore.io.command._
  * Created by Christophe on 05/03/2017.
  */
 class RemoteContext(protected val id: String, protected val handler: StreamHandler) extends Context with QuerySource {
-  implicit val formats = Serializers.buildRemoteFormats(id, handler)
+  implicit val formats = Serializers.buildRemoteFormats(handler, id)
 
   override def findItemsOfType(t: String): Option[EveObjectList] = handler.resultOperation[Result[EveObjectList]](FindItemsOfTypeCommand(t))
 

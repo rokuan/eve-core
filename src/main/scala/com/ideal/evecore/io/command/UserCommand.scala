@@ -34,6 +34,7 @@ object UserCommand {
 
   implicit val UserCommandSerializer = new CustomSerializer[UserCommand](data => ({
     case o: JObject => (o \ "command").extract[String] match {
+      case Evaluate => o.extract[EvaluateCommand]
       case RegisterReceiver => RegisterReceiverCommand()
       case UnregisterReceiver => o.extract[UnregisterReceiverCommand]
       case RegisterContext => RegisterContextCommand()
@@ -44,6 +45,7 @@ object UserCommand {
       case Ping => PingCommand()
     }
   }, {
+    case ec: EvaluateCommand => Extraction.decompose(ec)
     case rrc: RegisterReceiverCommand => Extraction.decompose(rrc)
     case urc: UnregisterReceiverCommand => Extraction.decompose(urc)
     case rcc: RegisterContextCommand => Extraction.decompose(rcc)

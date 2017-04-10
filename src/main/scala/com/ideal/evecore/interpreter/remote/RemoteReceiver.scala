@@ -4,7 +4,7 @@ package com.ideal.evecore.interpreter.remote
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject, QuerySource}
 import com.ideal.evecore.io.message.Result
-import com.ideal.evecore.io.{StreamHandler, Serializers, SocketLockHandler}
+import com.ideal.evecore.io.{StreamHandler, Serializers}
 import com.ideal.evecore.io.command.ReceiverCommand
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.ValueMatcher
@@ -17,7 +17,7 @@ import scala.util.Try
   * Created by Christophe on 09/03/17.
   */
 class RemoteReceiver(protected val id: String, protected val handler: StreamHandler) extends Receiver with QuerySource {
-  implicit val formats = Serializers.buildRemoteFormats(id, handler)
+  implicit val formats = Serializers.buildRemoteFormats(handler, id)
 
   /**
     * Called to initialize this receiver

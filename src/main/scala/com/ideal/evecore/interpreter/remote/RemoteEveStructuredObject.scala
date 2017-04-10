@@ -11,7 +11,7 @@ import com.ideal.evecore.io.command._
   * Created by Christophe on 05/03/2017.
   */
 class RemoteEveStructuredObject(val domainId: String, val objectId: String, protected val handler: StreamHandler) extends EveStructuredObject {
-  implicit val formats = Serializers.buildRemoteFormats(domainId, handler)
+  implicit val formats = Serializers.buildRemoteFormats(handler, domainId)
 
   override def getType(): String = handler.stringOperation(GetTypeCommand())
 

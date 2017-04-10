@@ -19,7 +19,7 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
   protected val stringResults = collection.mutable.Map[Long, PendingAtomicReference[String]]()
   protected val booleanResults = collection.mutable.Map[Long, PendingAtomicBoolean]()
   protected val stamp = new AtomicLong(0)
-  protected val commands = new LinkedBlockingQueue[(Long, UserCommand)](1)
+  protected val commands = new LinkedBlockingQueue[(Long, String)](1)
 
   override def run(): Unit = {
     while (running.get()) {
@@ -62,6 +62,12 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
       reference.set(json)
       reference.synchronized(reference.notify)
     }
+  }
+
+  def handleUserCommand(): Unit = {
+    val requestId = readValue().toLong
+    val command = readValue()
+    commands.offer(requestId, command)
   }
 
   def booleanOperation(command: UserCommand)(implicit formats: Formats): Boolean = {
@@ -110,12 +116,9 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
     }
   }
 
-  def nextCommand()(implicit formats: Formats): (Long, UserCommand) = commands.take()
-
-  def handleUserCommand(): Unit = {
-    val requestId = readValue().toLong
-    val command = readUserCommand()
-    commands.offer(requestId, command)
+  def nextCommand()(implicit formats: Formats): (Long, UserCommand) = {
+    val pair = commands.take()
+    (pair._1, Serialization.read[UserCommand](pair._2))
   }
 
   def writeResponse[T <: AnyRef](response: T)(implicit requestId: Long, formats: Formats) = os.synchronized {

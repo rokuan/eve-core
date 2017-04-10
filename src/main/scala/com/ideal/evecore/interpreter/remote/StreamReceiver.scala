@@ -1,11 +1,9 @@
 package com.ideal.evecore.interpreter.remote
 
-import java.net.Socket
-
 import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject, QuerySource}
 import com.ideal.evecore.io.message.Result
-import com.ideal.evecore.io.{StreamHandler, Serializers, SocketLockHandler}
+import com.ideal.evecore.io.{StreamHandler, Serializers}
 import com.ideal.evecore.io.command._
 import com.ideal.evecore.universe.ValueMatcher
 import com.ideal.evecore.universe.receiver.{EveObjectMessage, Receiver}
@@ -17,7 +15,7 @@ import scala.util.Try
  * Created by Christophe on 11/03/2017.
  */
 class StreamReceiver(private val receiverId: String, protected val handler: StreamHandler, protected val receiver: Receiver) extends Receiver with QuerySource with ObjectStreamSource {
-  override implicit val formats = Serializers.buildRemoteFormats(receiverId, handler)
+  override implicit val formats = Serializers.buildRemoteFormats(handler, receiverId)
 
   final def handleCommand(command: ReceiverCommand)(implicit requestId: Long) = Try {
     command match {
