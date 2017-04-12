@@ -12,7 +12,7 @@ import org.json4s.Formats
 import org.json4s.jackson.Serialization
 
 class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
-  implicit val formats = Serializers.buildBasicFormats()
+  implicit val formats = Serializers.buildRemoteFormats(this)
 
   protected val running = new AtomicBoolean(true)
   protected val objectResults = collection.mutable.Map[Long, PendingAtomicReference[String]]()
@@ -31,6 +31,7 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
           case BooleanResult => handleBooleanAnswer()
           case StringResult => handleStringAnswer()
           case ObjectResult => handleObjectAnswer()
+          case -1 => running.set(false)
           case _ =>
         }
       }
@@ -42,7 +43,6 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
     val test = readTest()
     booleanResults.remove(operationId).map { reference =>
       reference.set(test)
-      reference.synchronized(reference.notify())
     }
   }
 
@@ -51,7 +51,6 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
     val value = readValue()
     stringResults.remove(operationId).map { reference =>
       reference.set(value)
-      reference.synchronized(reference.notify)
     }
   }
 
@@ -60,7 +59,6 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
     val json = readValue()
     objectResults.remove(operationId).map { reference =>
       reference.set(json)
-      reference.synchronized(reference.notify)
     }
   }
 

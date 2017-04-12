@@ -13,7 +13,7 @@ import com.rokuan.calliopecore.parser.AbstractParser
 import org.json4s.DefaultFormats
 import org.json4s.jackson.Serialization
 
-import scala.util.Try
+import scala.util.{Success, Failure, Try}
 import scala.util.control.Breaks
 import com.ideal.evecore.common.Conversions._
 
@@ -94,10 +94,15 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   }
 
   private def evaluate(text: String)(implicit requestId: Long) = {
-    val obj = parser.parseText(text)
-    val result = evaluator.eval(obj)
-    // TODO: in a big Try
-    handler.writeResponse[Result[EveObject]](result)
+    Try {
+      val obj = parser.parseText(text)
+      val result = evaluator.eval(obj)
+      // TODO: in a big Try
+      result
+    } match {
+      case Success(r) => handler.writeResponse[Result[EveObject]](r)
+      case Failure(e) => handler.writeResponse[Result[EveObject]](Result.Ko(e))
+    }
   }
 
   private def registerReceiver()(implicit requestId: Long) = {
