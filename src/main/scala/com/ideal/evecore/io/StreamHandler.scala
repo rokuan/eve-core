@@ -41,25 +41,19 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
   protected def handleBooleanAnswer() = {
     val operationId = readValue().toLong
     val test = readTest()
-    booleanResults.remove(operationId).map { reference =>
-      reference.set(test)
-    }
+    booleanResults.remove(operationId).foreach(_.set(test))
   }
 
   protected def handleStringAnswer() = {
     val operationId = readValue().toLong
     val value = readValue()
-    stringResults.remove(operationId).map { reference =>
-      reference.set(value)
-    }
+    stringResults.remove(operationId).foreach(_.set(value))
   }
 
   protected def handleObjectAnswer() = {
     val operationId = readValue().toLong
     val json = readValue()
-    objectResults.remove(operationId).map { reference =>
-      reference.set(json)
-    }
+    objectResults.remove(operationId).foreach(_.set(json))
   }
 
   def handleUserCommand(): Unit = {

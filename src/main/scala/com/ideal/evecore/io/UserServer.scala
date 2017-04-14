@@ -65,8 +65,6 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
   private val receivers = collection.mutable.Map[String, RemoteReceiver]()
   private val contexts = collection.mutable.Map[String, RemoteContext]()
 
-  //private val handler = new SocketHandler(socket)
-  //private val handler = new SocketLockHandler(socket)
   private val handler = new StreamHandler(socket)
   // TODO: proper syntax
   new Thread(handler).start()
@@ -113,7 +111,7 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
     handler.writeStringResponse(receiverId)
   }
 
-  private def unregisterReceiver(receiverId: String) = receivers.get(receiverId).map(world.unregisterReceiver)
+  private def unregisterReceiver(receiverId: String) = receivers.remove(receiverId).foreach(world.unregisterReceiver)
 
   private def registerContext()(implicit requestId: Long) = {
     val contextId = freshId()
@@ -123,7 +121,7 @@ abstract class UserSocket[T <: Session](protected val socket: Socket, protected 
     handler.writeStringResponse(contextId)
   }
 
-  private def unregisterContext(contextId: String) = contexts.get(contextId).map(environment.removeContext)
+  private def unregisterContext(contextId: String) = contexts.remove(contextId).foreach(environment.removeContext)
 
   private final def freshId(): String = idGenerator.incrementAndGet().toString
 }
