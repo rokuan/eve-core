@@ -7,9 +7,12 @@ import java.util.concurrent.atomic.{AtomicLong, AtomicBoolean}
 import com.ideal.evecore.interpreter.remote.StreamUtils
 import StreamHandler._
 import com.ideal.evecore.io.command.UserCommand
+import com.ideal.evecore.io.message.Result
 import com.ideal.evecore.util.{PendingAtomicBoolean, PendingAtomicReference}
-import org.json4s.Formats
-import org.json4s.jackson.Serialization
+import org.json4s.{Extraction, Formats}
+import org.json4s.JsonAST.{JString, JObject}
+import org.json4s.jackson.{JsonMethods, Serialization}
+import org.json4s.JsonDSL._
 
 class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
   implicit val formats = Serializers.buildRemoteFormats(this)
@@ -86,7 +89,7 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
     value.get()
   }
 
-  def resultOperation[T <: AnyRef](command: UserCommand)(implicit formats: Formats, m: Manifest[T]): T = {
+  def objectOperation[T <: AnyRef](command: UserCommand)(implicit formats: Formats, m: Manifest[T]): T  = {
     val operationId = stamp.incrementAndGet()
     val currentThread = Thread.currentThread()
     val value = new PendingAtomicReference[String]()
@@ -96,7 +99,28 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
       writeValue(operationId.toString)
       writeUserCommand(command)
     }
-    Serialization.read[T](value.get())
+    val json = value.get()
+    Serialization.read[T](json)
+  }
+
+  def resultOperation[T >: Null](command: UserCommand)(implicit formats: Formats, m: Manifest[T]): Result[T] = {
+    val operationId = stamp.incrementAndGet()
+    val currentThread = Thread.currentThread()
+    val value = new PendingAtomicReference[String]()
+    os.synchronized {
+      objectResults.put(operationId, value)
+      os.write(CommandToken)
+      writeValue(operationId.toString)
+      writeUserCommand(command)
+    }
+    val json = value.get()
+    val o = JsonMethods.parse(json).asInstanceOf[JObject]
+
+    if ((o \ "success").extractOpt[Boolean].getOrElse(false)) {
+      Result.Ok((o \ "value").extract[T])
+    } else {
+      Result.Ko((o \ "error").extract[String])
+    }
   }
 
   def commandOperation(command: UserCommand)(implicit formats: Formats): Unit = {
@@ -129,6 +153,18 @@ class StreamHandler(val socket: Socket) extends StreamUtils with Runnable {
     os.write(BooleanResult)
     writeValue(requestId.toString)
     writeValue(response)
+  }
+
+  def writeResultResponse[T >: Null](response: Result[T])(implicit requestId: Long) = os.synchronized {
+    os.write(ObjectResult)
+    writeValue(requestId.toString)
+    val o =
+      if (response.success) {
+        ("success" -> true) ~ ("value" -> Extraction.decompose(response.value))
+      } else {
+        ("success" -> false) ~ ("error" -> JString(response.error))
+      }
+    writeValue(JsonMethods.compact(o))
   }
 }
 

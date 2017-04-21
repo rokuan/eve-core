@@ -18,7 +18,7 @@ object Conversions {
 
   implicit def tryToResult[T >: Null](t: Try[T]): Result[T] = t match {
     case Success(v) => Result.Ok(v)
-    case Failure(e) => Result.Ko(e.getMessage)
+    case Failure(e) => Result.Ko(e)
   }
 
   implicit def resultToTry[T >: Null](r: Result[T]): Try[T] = r.success match {
