@@ -123,7 +123,7 @@ class UserConnection(val host: String, val port: Int, val credentials: Credentia
     sources.put(contextId, streamContext)
   }
 
-  def evaluate(text: String): Result[EveObject] = handler.resultOperation[Result[EveObject]](EvaluateCommand(text))
+  def evaluate(text: String): Result[EveObject] = handler.resultOperation[EveObject](EvaluateCommand(text))
 
   private def authenticate(): Unit = {
     val wrapper = new SocketWrapper(socket)

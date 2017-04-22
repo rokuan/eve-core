@@ -15,7 +15,7 @@ import scala.util.Try
  * Created by Christophe on 11/03/2017.
  */
 class StreamReceiver(private val receiverId: String, protected val handler: StreamHandler, protected val receiver: Receiver) extends Receiver with QuerySource with ObjectStreamSource {
-  override implicit val formats = Serializers.buildRemoteFormats(handler, receiverId)
+  implicit val formats = Serializers.buildRemoteFormats(handler, receiverId)
 
   final def handleCommand(command: ReceiverCommand)(implicit requestId: Long) = Try {
     command match {
@@ -25,7 +25,7 @@ class StreamReceiver(private val receiverId: String, protected val handler: Stre
       }
       case c: HandleMessageCommand => {
         val result = handleMessage(c.message)
-        handler.writeResponse[Result[EveObject]](result)
+        handler.writeResultResponse[EveObject](result)
       }
       case c: GetReceiverNameCommand => {
         val name = getReceiverName()

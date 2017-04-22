@@ -20,7 +20,7 @@ case class EvaluateCommand(text: String, command: String = Evaluate) extends Use
 case class PingCommand(command: String = Ping) extends UserCommand
 
 object UserCommand {
-  import com.ideal.evecore.io.Serializers.Formats
+  //import com.ideal.evecore.io.Serializers.Formats
 
   val Evaluate = "EVAL"
   val RegisterReceiver = "RRCV"
@@ -33,26 +33,29 @@ object UserCommand {
   val Ping = "PING"
 
   implicit val UserCommandSerializer = new CustomSerializer[UserCommand](data => ({
-    case o: JObject => (o \ "command").extract[String] match {
-      case Evaluate => o.extract[EvaluateCommand]
-      case RegisterReceiver => RegisterReceiverCommand()
-      case UnregisterReceiver => o.extract[UnregisterReceiverCommand]
-      case RegisterContext => RegisterContextCommand()
-      case UnregisterContext => o.extract[UnregisterContextCommand]
-      case CallReceiverMethod => o.extract[ReceiverRequestCommand]
-      case CallContextMethod => o.extract[ContextRequestCommand]
-      case CallObjectMethod => o.extract[ObjectRequestCommand]
-      case Ping => PingCommand()
-    }
+    case o: JObject =>
+      implicit val formats = data
+      (o \ "command").extract[String] match {
+        case Evaluate => o.extract[EvaluateCommand]
+        case RegisterReceiver => RegisterReceiverCommand()
+        case UnregisterReceiver => o.extract[UnregisterReceiverCommand]
+        case RegisterContext => RegisterContextCommand()
+        case UnregisterContext => o.extract[UnregisterContextCommand]
+        case CallReceiverMethod => o.extract[ReceiverRequestCommand]
+        case CallContextMethod => o.extract[ContextRequestCommand]
+        case CallObjectMethod => o.extract[ObjectRequestCommand]
+        case Ping => PingCommand()
+      }
   }, {
-    case ec: EvaluateCommand => Extraction.decompose(ec)
-    case rrc: RegisterReceiverCommand => Extraction.decompose(rrc)
-    case urc: UnregisterReceiverCommand => Extraction.decompose(urc)
-    case rcc: RegisterContextCommand => Extraction.decompose(rcc)
-    case ucc: UnregisterContextCommand => Extraction.decompose(ucc)
-    case rrc: ReceiverRequestCommand => Extraction.decompose(rrc)
-    case crc: ContextRequestCommand => Extraction.decompose(crc)
-    case orc: ObjectRequestCommand => Extraction.decompose(orc)
-    case pc: PingCommand => Extraction.decompose(pc)
+    case ec: EvaluateCommand => Extraction.decompose(ec)(data)
+    case rrc: RegisterReceiverCommand => Extraction.decompose(rrc)(data)
+    case urc: UnregisterReceiverCommand => Extraction.decompose(urc)(data)
+    case rcc: RegisterContextCommand => Extraction.decompose(rcc)(data)
+    case ucc: UnregisterContextCommand => Extraction.decompose(ucc)(data)
+    case rrc: ReceiverRequestCommand => Extraction.decompose(rrc)(data)
+    case crc: ContextRequestCommand => Extraction.decompose(crc)(data)
+    case orc: ObjectRequestCommand => Extraction.decompose(orc)(data)
+    case pc: PingCommand => Extraction.decompose(pc)(data)
+    //case o => Extraction.decompose(o)(data)
   }))
 }

@@ -2,7 +2,6 @@ package com.ideal.evecore.interpreter.remote
 
 
 import com.ideal.evecore.interpreter._
-import com.ideal.evecore.io.message.Result
 import com.ideal.evecore.io.{StreamHandler, Serializers}
 import com.ideal.evecore.io.command.ObjectCommand
 import com.ideal.evecore.io.command._
@@ -13,8 +12,8 @@ import com.ideal.evecore.common.Conversions._
 /**
   * Created by Christophe on 07/03/17.
   */
-class StreamContext(private val contextId: String, protected val handler: StreamHandler, val context: Context) extends Context with QuerySource with ObjectStreamSource {
-  override implicit val formats = Serializers.buildRemoteFormats(handler, contextId)
+class StreamContext(private val contextId: String, protected val handler: StreamHandler, val context: Context) extends Context with ObjectStreamSource {
+  implicit val formats = Serializers.buildRemoteFormats(handler, contextId)
 
   /**
     * Reads the commands that are sent from the server
@@ -24,11 +23,11 @@ class StreamContext(private val contextId: String, protected val handler: Stream
     command match {
       case c: FindItemsOfTypeCommand => {
         val items = findItemsOfType(c.itemType)
-        handler.writeResponse[Result[EveObjectList]](items)
+        handler.writeResultResponse[EveObjectList](items)
       }
       case c: FindOneItemOfTypeCommand => {
         val result = findOneItemOfType(c.itemType)
-        handler.writeResponse[Result[EveStructuredObject]](result)
+        handler.writeResultResponse[EveStructuredObject](result)
       }
       case c: ObjectCommand => handleObjectCommand(c)
       case _ =>

@@ -36,7 +36,7 @@ class RemoteReceiver(protected val id: String, protected val handler: StreamHand
     *
     * @return A mapping containing the definition field of this receiver
     */
-  override def getMappings(): Mapping[ValueMatcher] = handler.resultOperation[Mapping[ValueMatcher]](GetMappingsCommand())
+  override def getMappings(): Mapping[ValueMatcher] = handler.objectOperation[Mapping[ValueMatcher]](GetMappingsCommand())
 
   /**
     * Executes the message
@@ -44,14 +44,14 @@ class RemoteReceiver(protected val id: String, protected val handler: StreamHand
     * @param message The message to process
     * @return The result of the operation
     */
-  override def handleMessage(message: EveObjectMessage): Try[EveObject] = handler.resultOperation[Result[EveObject]](HandleMessageCommand(message))
+  override def handleMessage(message: EveObjectMessage): Try[EveObject] = handler.resultOperation[EveObject](HandleMessageCommand(message))
 
   /**
     * Called when destroying this receiver, to make sure everything is cleaned up
     */
   override def destroyReceiver(): Unit = handler.commandOperation(DestroyReceiverCommand())
   
-  override def findById(id: String): Option[EveStructuredObject] = handler.resultOperation[Result[EveStructuredObject]](FindItemByIdCommand(id))
+  override def findById(id: String): Option[EveStructuredObject] = handler.resultOperation[EveStructuredObject](FindItemByIdCommand(id))
 
   implicit protected def getCommand(command: ReceiverCommand): UserCommand = ReceiverRequestCommand(id, command)
 }

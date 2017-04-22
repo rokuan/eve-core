@@ -140,7 +140,8 @@ trait EveResultObject
 
 sealed case class EveSuccessObject(o: EveObject) extends EveResultObject
 sealed case class EveFailureObject(error: String) extends EveResultObject {
-  def this(e: Throwable) = this(e.getMessage)
+  //def this(e: Throwable) = this(e.getMessage)
+  def this(e: Throwable) = this(e.getStackTrace.map(_.toString).mkString("\n"))
 }
 
 object EveResultObject {

@@ -3,8 +3,7 @@ package com.ideal.evecore.interpreter.remote
 
 import com.ideal.evecore.interpreter.{EveObject, EveStructuredObject}
 import com.ideal.evecore.common.Conversions._
-import com.ideal.evecore.io.message.Result
-import com.ideal.evecore.io.{StreamHandler, Serializers, SocketLockHandler}
+import com.ideal.evecore.io.{StreamHandler, Serializers}
 import com.ideal.evecore.io.command._
 
 /**
@@ -17,9 +16,9 @@ class RemoteEveStructuredObject(val domainId: String, val objectId: String, prot
 
   override def set(field: String, value: EveObject): Unit = handler.commandOperation(SetFieldCommand(field, value))
 
-  override def get(field: String): Option[EveObject] = handler.resultOperation[Result[EveObject]](GetFieldCommand(field))
+  override def get(field: String): Option[EveObject] = handler.resultOperation[EveObject](GetFieldCommand(field))
 
-  override def getState(state: String): Option[String] = handler.resultOperation[Result[String]](GetStateCommand(state))
+  override def getState(state: String): Option[String] = handler.resultOperation[String](GetStateCommand(state))
 
   override def setState(state: String, value: String): Unit = handler.commandOperation(SetStateCommand(state, value))
 
