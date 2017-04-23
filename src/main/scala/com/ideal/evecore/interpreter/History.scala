@@ -1,5 +1,7 @@
 package com.ideal.evecore.interpreter
 
+import com.ideal.evecore.interpreter.data.EveStructuredObject
+
 /**
   * Created by Christophe on 05/02/2017.
   */

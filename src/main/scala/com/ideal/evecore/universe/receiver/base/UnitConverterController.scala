@@ -1,15 +1,20 @@
 package com.ideal.evecore.universe.receiver.base
 
-import com.ideal.evecore.common.Mapping.Mapping
 import com.ideal.evecore.interpreter._
 import com.ideal.evecore.io._
 import com.ideal.evecore.universe.receiver.{EveObjectMessage, Receiver}
-import com.ideal.evecore.universe.{ObjectValueMatcher, StringValueMatcher, ValueMatcher}
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.data.nominal.UnitObject.UnitType
 import com.rokuan.calliopecore.sentence.structure.data.way.WayAdverbial
 import com.rokuan.calliopecore.sentence.structure.data.nominal.QuantityObject
 import EveObjectDSL._
+import com.ideal.evecore.common.Mapping
+import com.ideal.evecore.interpreter.data.{EveMappingObject, EveObject}
+import com.ideal.evecore.util.Result
+import com.ideal.evecore.common.Conversions._
+import EObject._
+import com.ideal.evecore.universe.EValueMatcher._
+import com.ideal.evecore.universe.matcher.ValueMatcher
 
 import scala.util.Try
 
@@ -21,16 +26,16 @@ class UnitConverterController extends Receiver {
 
   override def getReceiverName(): String = getClass.getName
 
-  override def getMappings(): Mapping[ValueMatcher] = Map(
-    InterpretationObjectKey.Action -> StringValueMatcher(ActionType.CONVERT.name()),
+  override def getMappings(): Mapping[ValueMatcher] = Map[String, ValueMatcher](
+    InterpretationObjectKey.Action -> ActionType.CONVERT.name(),
     /*InterpretationObjectKey.What -> OrValueMatcher(
       ObjectValueMatcher(Map(NominalObjectKey.))
     ),*/
-    InterpretationObjectKey.How -> ObjectValueMatcher(WayObjectKey.WayType -> StringValueMatcher(WayAdverbial.WayType.UNIT.name()))
+    InterpretationObjectKey.How -> Map[String, ValueMatcher](WayObjectKey.WayType -> WayAdverbial.WayType.UNIT.name())
   )
 
-  override def handleMessage(message: EveObjectMessage): Try[EveObject] = {
-    val o = message.obj
+  override def handleMessage(message: EveObjectMessage): Result[EveObject] = {
+    val o: EStructuredObject = message.getContent
     val srcValue = Try {
       val quantityObject = o \ InterpretationObjectKey.What
       (quantityObject \ QuantityObjectKey.Value toNumber, quantityObject \ QuantityObjectKey.Type toText)
@@ -44,12 +49,12 @@ class UnitConverterController extends Receiver {
         val quantityObject = new QuantityObject
         quantityObject.amount = timeConverter(value, fromUnit, toUnit).doubleValue()
         quantityObject.unitType = toUnit
-        EveMappingObject(Writer.write(quantityObject))
+        implicitly[EveMappingObject](Writer.write(quantityObject))
       } else if(isDistanceUnitType(fromUnit) && isDistanceUnitType(toUnit)) {
         val quantityObject = new QuantityObject
         quantityObject.amount = distanceConverter(value, fromUnit, toUnit).doubleValue()
         quantityObject.unitType = toUnit
-        EveMappingObject(Writer.write(quantityObject))
+        implicitly[EveMappingObject](Writer.write(quantityObject))
       } else {
         throw new Exception("Unable to convert this value. Maybe those are two incompatible units")
       }

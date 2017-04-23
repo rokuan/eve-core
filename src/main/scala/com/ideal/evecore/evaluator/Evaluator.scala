@@ -1,32 +1,37 @@
-package com.ideal.evecore.interpreter
+package com.ideal.evecore.evaluator
 
 import java.util.Calendar
 
+import com.ideal.evecore.evaluator.Evaluator._
+import com.ideal.evecore.interpreter._
+import com.ideal.evecore.interpreter.data._
 import com.ideal.evecore.io.Writer
-import com.ideal.evecore.universe.execution.TaskHandler
-import com.rokuan.calliopecore.sentence.structure.data.count.CountObject.CountType
-import com.rokuan.calliopecore.sentence.{ActionObject, IPronoun}
+import com.ideal.evecore.util.Result
 import com.rokuan.calliopecore.sentence.IAction.ActionType
 import com.rokuan.calliopecore.sentence.structure.content.{INominalObject, ITimeObject, IWayObject}
+import com.rokuan.calliopecore.sentence.structure.data.count.CountObject.CountType
 import com.rokuan.calliopecore.sentence.structure.data.nominal._
 import com.rokuan.calliopecore.sentence.structure.data.place.{AdditionalPlace, LocationObject, NamedPlaceObject, PlaceObject}
-import com.rokuan.calliopecore.sentence.structure.data.time.{DayPartObject, RelativeTimeObject, SingleTimeObject, TimePeriodObject}
 import com.rokuan.calliopecore.sentence.structure.data.time.TimeAdverbial.DateDefinition
+import com.rokuan.calliopecore.sentence.structure.data.time.{DayPartObject, RelativeTimeObject, SingleTimeObject, TimePeriodObject}
 import com.rokuan.calliopecore.sentence.structure.data.way.TransportObject
 import com.rokuan.calliopecore.sentence.structure.{AffirmationObject, InterpretationObject, OrderObject, QuestionObject}
-import Evaluator._
+import com.rokuan.calliopecore.sentence.{ActionObject, IPronoun}
+
+import EObject._
+import com.ideal.evecore.common.Conversions._
 
 import scala.util.{Failure, Success, Try}
 
 /**
- * Created by Christophe on 20/09/2016.
- */
-trait Evaluator {
+  * Created by Christophe on 20/09/2016.
+  */
+trait Interpreter extends Evaluator {
   protected val context: Context
   protected val taskHandler: TaskHandler
   protected val history: History
 
-  def eval(obj: InterpretationObject): EveResultObject = {
+  override def eval(obj: InterpretationObject): Result[EveObject] = {
     obj match {
       case question: QuestionObject => evalQuestion(question)
       case affirmation: AffirmationObject => evalAffirmation(affirmation)
@@ -34,8 +39,7 @@ trait Evaluator {
     }
   }
 
-  protected def evalQuestion(question: QuestionObject): Try[EveObject] = {
-    import EveObject._
+  protected def evalQuestion(question: QuestionObject): Result[EveObject] = {
 
     /*val expectedType = question.questionType match {
       case QuestionType.HOW_MANY => NumberResultType
@@ -50,13 +54,13 @@ trait Evaluator {
     val action = verbStructure.getMainAction.getAction
 
     if(action == ActionType.BE){
-      findObject(question.getDirectObject)
+      findObject(question.getDirectObject).map(implicitly[EveObject](_))
     } else {
-      Success(NoneObject)
+      EveResultObject.ok()
     }
   }
 
-  protected def evalAffirmation(affirmation: AffirmationObject): Try[EveObject] = {
+  protected def evalAffirmation(affirmation: AffirmationObject): Result[EveObject] = {
     val verb: ActionObject = affirmation.getAction
     val action = verb.getMainAction
 
@@ -64,20 +68,20 @@ trait Evaluator {
 
     if(action.getAction == ActionType.BE){
       //affirmation.getDirectObject
-      Failure(new Exception("Not implemented yet"))
+      EveResultObject.ko(new Exception("Not implemented yet"))
     } else if(action.getAction == ActionType.HAVE){
       set(affirmation.getSubject, affirmation.getDirectObject)
-      Success(NoneObject)
+      EveResultObject.ok()
     } else if(action.isFieldBound) {
       val field = action.getBoundField
       set(affirmation.getSubject, field, affirmation.getDirectObject)
-      Success(NoneObject)
+      EveResultObject.ok()
     } else {
-      Success(NoneObject)
+      EveResultObject.ok()
     }
   }
 
-  protected def evalOrder(order: OrderObject): EveResultObject = {
+  protected def evalOrder(order: OrderObject): Result[EveObject] = {
     import com.ideal.evecore.io.InterpretationObjectKey._
 
     val action = order.getAction.getMainAction
@@ -89,14 +93,18 @@ trait Evaluator {
     val target = findObject(order.getTarget)
 
     if(action.isStateBound){
-      for {
+      val result = for {
         time <- when
         target <- what
       } yield {
         taskHandler.scheduleDelayedStateTask(time, action, target)
       }
+      result match {
+        case Success(v) => v
+        case Failure(e) => Result.ko(e)
+      }
     } else {
-      val values = List[(String, Try[EveObject])](
+      val values = List[(String, Try[EObject])](
         (Subject, subject),
         (What, what),
         (How, how),
@@ -107,16 +115,19 @@ trait Evaluator {
       .foldLeft[Map[String, ValueSource]](Map[String, ValueSource](Action -> actionType.name())){ case (acc, p) => acc + p }
 
       when.map(taskHandler.scheduleDelayedTask(_, requestObject))*/
-      val requestObject: EveStructuredObject = values.collect {
+      val requestObject: EStructuredObject = values.collect {
         case (k, Success(v)) => (k -> v)
-      }.foldLeft[Map[String, EveObject]](Map[String, EveObject](Action -> actionType.name())){ case (acc, p) => acc + p }
-      when.map(taskHandler.scheduleDelayedTask(_, requestObject))
+      }.foldLeft[Map[String, EObject]](Map[String, EObject](Action -> actionType.name())){ case (acc, p) => acc + p }
+      when match {
+        case Success(t) => taskHandler.scheduleDelayedTask(t, requestObject)
+        case Failure(e) => Result.ko(e)
+      }
     }
   }
 
-  def findSubject(subject: INominalObject): Try[EveObject] = findObject(subject)
+  def findSubject(subject: INominalObject): Try[EObject] = findObject(subject)
 
-  final def findObject(src: INominalObject, createIfNeeded: Boolean = false): Try[EveObject] = {
+  final def findObject(src: INominalObject, createIfNeeded: Boolean = false): Try[EObject] = {
     src match {
       case null => Failure(new Exception("Source object is null"))
       case abstractTarget: AbstractTarget => findAbstractTarget(abstractTarget)
@@ -137,12 +148,12 @@ trait Evaluator {
       case pronounSubject: PronounSubject => resolvePronounSubject(pronounSubject)
       case quantity: QuantityObject => Try(Writer.write(quantity))
       case unit: UnitObject => Try(Writer.write(unit))
-      case person: PersonObject => Success(EveStringObject(person.name))
+      case person: PersonObject => Success(new EveStringObject(person.name))
       case _: VerbalGroup | _ => notImplementedYet
     }
   }
 
-  def findTime(time: ITimeObject): Try[EveObject] = {
+  def findTime(time: ITimeObject): Try[EObject] = {
     time match {
       case null => Failure(new Exception("Source object is null"))
       case s: SingleTimeObject => {
@@ -158,12 +169,12 @@ trait Evaluator {
             applyTime(date, result)
           }
 
-          EveDateObject(result.getTime)
+          EDateObject(result.getTime)
         }
       }
-      case r: RelativeTimeObject => Success(EveDateObject(r.getDate))
+      case r: RelativeTimeObject => Success(EDateObject(r.getDate))
       case d: DayPartObject => notImplementedYet
-      case p: TimePeriodObject => Success(EveObjectList(Array(EveDateObject(p.getFrom), EveDateObject(p.getTo))))
+      case p: TimePeriodObject => Success(EObjectList(Array(EDateObject(p.getFrom), EDateObject(p.getTo))))
       case _ => notImplementedYet
     }
   }
@@ -183,7 +194,7 @@ trait Evaluator {
     target.set(Calendar.SECOND, source.get(Calendar.SECOND))
   }
 
-  def findWay(way: IWayObject): Try[EveObject] = {
+  def findWay(way: IWayObject): Try[EObject] = {
     way match {
       case null => Failure(new Exception("Source object is null"))
       case color: ColorObject => Try(Writer.write(color))
@@ -194,30 +205,32 @@ trait Evaluator {
     }
   }
 
-  final private def resolvePronounSubject(pronounSubject: PronounSubject): Try[EveObject] = findPronounSource(pronounSubject.pronoun)
-  final protected def findAbstractTarget(abstractTarget: AbstractTarget): Try[EveObject] = findPronounSource(abstractTarget.source)
+  final private def resolvePronounSubject(pronounSubject: PronounSubject): Try[EObject] = findPronounSource(pronounSubject.pronoun)
+  final protected def findAbstractTarget(abstractTarget: AbstractTarget): Try[EObject] = findPronounSource(abstractTarget.source)
 
-  def findPronounSource(pronoun: IPronoun): Try[EveObject]
-  def findNameObject(name: NameObject): Try[EveObject] = Try {
+  def findPronounSource(pronoun: IPronoun): Try[EObject]
+  def findNameObject(name: NameObject): Try[EObject] = {
     // TODO: query the context according to the quantity and/or position
     val typeTag = name.`object`.getNameTag
-    if(name.count.getType == CountType.ALL){
-      context.findItemsOfType(typeTag)
-    } else {
-      context.findOneItemOfType(typeTag)
-    }
+    val result: Option[EObject] =
+      if(name.count.getType == CountType.ALL){
+        context.findItemsOfType(typeTag).map((e: EveObjectList) => implicitly[EObjectList](e))
+      } else {
+        context.findOneItemOfType(typeTag).map((o: EveStructuredObject) => implicitly[EStructuredObject](o))
+      }
+    result
   }
-  def findCharacter(char: CharacterObject): Try[EveObject]
-  def findNamedPlace(place: NamedPlaceObject): Try[EveObject]
-  def findAdditionalDataByCode(code: String): Try[EveObject]
+  def findCharacter(char: CharacterObject): Try[EObject]
+  def findNamedPlace(place: NamedPlaceObject): Try[EObject]
+  def findAdditionalDataByCode(code: String): Try[EObject]
 
-  def getCommonSuperTypes(os: List[EveObject]): String
+  def getCommonSuperTypes(os: List[EObject]): String
 
   private def set(source: EveObject, field: String, value: EveObject): Unit = {
-    source match {
-      case eso: EveStructuredObject => eso.set(field, value)
-      case eol: EveObjectList => eol.a.collect {
-        case eso: EveStructuredObject => eso.set(field, value)
+    implicitly[EObject](source) match {
+      case eso: EStructuredObject => eso.set(field, value)
+      case eol: EObjectList => eol.a.collect {
+        case eso: EStructuredObject => eso.set(field, value)
       }
       case _ =>
     }
@@ -237,8 +250,8 @@ trait Evaluator {
       source <- findObject(left).toOption
       target <- findObject(value).toOption
       field <- Option(target).collect {
-        case eso: EveStructuredObject => List(eso)
-        case eol: EveObjectList if eol.a.count(_.isInstanceOf[EveStructuredObject]) > 0 =>
+        case eso: EStructuredObject => List(eso)
+        case eol: EObjectList if eol.a.count(_.isInstanceOf[EveStructuredObject]) > 0 =>
           eol.a.filter(_.isInstanceOf[EveStructuredObject]).toList
       }.map(getCommonSuperTypes)
     } yield {
