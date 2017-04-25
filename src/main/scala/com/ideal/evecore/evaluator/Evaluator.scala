@@ -39,6 +39,11 @@ trait Interpreter extends Evaluator {
     }
   }
 
+  /**
+   * Evaluate a question object
+   * @param question The question to evaluate
+   * @return The answer to this question as an EveObject instance
+   */
   protected def evalQuestion(question: QuestionObject): Result[EveObject] = {
 
     /*val expectedType = question.questionType match {
@@ -60,6 +65,11 @@ trait Interpreter extends Evaluator {
     }
   }
 
+  /**
+   * Evaluates an affirmative sentence object
+   * @param affirmation
+   * @return A succesful result
+   */
   protected def evalAffirmation(affirmation: AffirmationObject): Result[EveObject] = {
     val verb: ActionObject = affirmation.getAction
     val action = verb.getMainAction
@@ -81,6 +91,11 @@ trait Interpreter extends Evaluator {
     }
   }
 
+  /**
+   * Executes an order
+   * @param order The order to process
+   * @return The result of this order if any
+   */
   protected def evalOrder(order: OrderObject): Result[EveObject] = {
     import com.ideal.evecore.io.InterpretationObjectKey._
 

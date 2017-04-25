@@ -14,15 +14,15 @@ import com.ideal.evecore.common.Conversions._
 import scala.util.{Failure, Success, Try}
 
 /**
-  * Created by Christophe on 28/12/2016.
-  */
+ * Created by Christophe on 28/12/2016.
+ */
 class TaskHandler(private val world: World) {
   val timer = new Timer()
 
   /**
    * Executes a task at a certain time
-    *
-    * @param time The moment in time when the action should be executed
+   *
+   * @param time The moment in time when the action should be executed
    * @param o The object containing all the needed data (action, source, target, time, ...)
    * @return The result of the operation (can be NoneObject is the action is not instant)
    */
@@ -38,8 +38,8 @@ class TaskHandler(private val world: World) {
 
   /**
    * Executes a task at a certain time
-    *
-    * @param time The moment in time when the action should be executed
+   *
+   * @param time The moment in time when the action should be executed
    * @param action The state-action to execute
    * @param what The object the action applies to
    * @return
@@ -60,9 +60,17 @@ class TaskHandler(private val world: World) {
     }
   }
 
+  /**
+   * Executes a task at a single fixed date in time
+   * @param d The time to execute the task at
+   * @param o The object to send to the receiver
+   * @param exec The task execution method
+   * @tparam T
+   * @return
+   */
   private def scheduleFixedDateTask[T](d: Date, o: T, exec: ExecutionProcessor[T]): Result[EveObject] = {
     if(!d.after(new Date())){
-       exec(o)
+      exec(o)
     } else {
       val task = new TimerTask {
         override def run(): Unit = exec(o)
@@ -72,6 +80,15 @@ class TaskHandler(private val world: World) {
     }
   }
 
+  /**
+   * Executes a task during a certain perdio
+   * @param from The start time
+   * @param to The end time
+   * @param o The object to handle
+   * @param exec The task execution method
+   * @tparam T
+   * @return
+   */
   private def scheduleDurationTask[T](from: Date, to: Date, o: T, exec: ExecutionProcessor[T]): Result[EveObject] = {
     if(from.before(to)) {
       val startTask = new TimerTask {
@@ -86,6 +103,11 @@ class TaskHandler(private val world: World) {
     EveResultObject.ok()
   }
 
+  /**
+   * Send this object to a receiver so it can handle it
+   * @param o The object to process
+   * @return The result of the execution by the matching receiver
+   */
   private def execute(o: EStructuredObject): Result[EveObject] = {
     val content = implicitly[EveStructuredObject](o)
     world.findReceiver(content)

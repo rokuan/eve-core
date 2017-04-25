@@ -42,7 +42,7 @@ object EObject {
   implicit def dateToEveObject(d: Date): EDateObject = EDateObject(d)
   implicit def arrayToEveObject(a: Array[EObject]): EObjectList = EObjectList(a)
   //implicit def mapToEveObject(m: Mapping[EObject]): EMappingObject = EMappingObject(m)
-  implicit def optionToEveObject(o: Option[_]): EObject = o.map(apply).orNull
+  implicit def optionToEveObject(o: Option[_]): EObject = o.map(anyToEObject).orNull
 
   implicit def pairsToEveMappingObject(m: (String, EveObject)*) = new EveMappingObject(m.map(p => new com.ideal.evecore.util.Pair[String, EveObject](p._1, p._2)): _*)
   implicit def mappingToEveMappingObject(m: Map[String, EveObject]) = new EveMappingObject(m.map { case (key, value) => new com.ideal.evecore.util.Pair[String, EveObject](key, value) }.toSeq: _*)
@@ -82,17 +82,29 @@ object EObject {
   implicit def eveStructuredObjectToEStructuredObject(o: EveStructuredObject): EStructuredObject = new EStructuredObject(o)
   implicit def eStructuredObjectToEveStructuredObject(o: EStructuredObject): EveStructuredObject = o.underlying
 
-  def apply(a: Any): EObject = a match {
+  implicit def anyToEObject(a: Any): EObject = a match {
     case null => null
     case s: String => s
     case d: Double => d
     case n: Number => n
     case b: Boolean => b
     case d: Date => d
-    case a: Array[_] => EObjectList(a.map(apply))
-    case m: Map[_, _] => EStructuredObject(new EveMappingObject(m.map { case (k, o) => new com.ideal.evecore.util.Pair[String, EveObject](k.toString, apply(o)) }.toSeq: _*))
+    case a: Array[_] => EObjectList(a.map(anyToEObject))
+    case m: Map[_, _] => EMappingObject(new EveMappingObject(m.map { case (k, o) => new com.ideal.evecore.util.Pair[String, EveObject](k.toString, anyToEveObject(o)) }.toSeq: _*))
     case o: Option[_] => o
     case o: EObject => o
+  }
+
+  implicit def anyToEveObject(a: Any): EveObject = a match {
+    case null => null
+    case s: String => new EveStringObject(s)
+    case d: Double => new EveNumberObject(d)
+    case n: Number => new EveNumberObject(n)
+    case b: Boolean => new EveBooleanObject(b)
+    case d: Date => new EveDateObject(d)
+    case a: Array[_] => new EveObjectList(a.map(anyToEveObject): _*)
+    case m: Map[_, _] => new EveMappingObject(m.map { case (k, o) => new com.ideal.evecore.util.Pair[String, EveObject](k.toString, anyToEveObject(o)) }.toSeq: _*)
+    case o: EveObject => o
   }
 
   implicit def eveObjectToEObject(o: EveObject): EObject = o match {
@@ -100,7 +112,9 @@ object EObject {
     case b: EveBooleanObject => EBooleanObject(b.getValue)
     case n: EveNumberObject => ENumberObject(n.getValue)
     case d: EveDateObject => EDateObject(d.getValue)
-    case o: EveStructuredObject => EStructuredObject(o)
+    case q: EveQueryMappingObject => EQueryMappingObject(q)
+    case m: EveMappingObject => EMappingObject(m)
+    case o: EveStructuredObject => new EStructuredObject(o)
     case l: EveObjectList => EObjectList(l.getValues.map(eveObjectToEObject(_)))
   }
 
@@ -109,7 +123,8 @@ object EObject {
     case EBooleanObject(b) => new EveBooleanObject(b)
     case ENumberObject(n) => new EveNumberObject(n)
     case EDateObject(d) => new EveDateObject(d)
-    case EStructuredObject(o) => o
+    //case EMappingObject(m) => m
+    case o: EStructuredObject => o.underlying
     case EObjectList(l) => new EveObjectList(l.map(eObjectToEveObject(_)).toList)
   }
 }
@@ -136,7 +151,7 @@ case class EObjectList(a: Seq[EObject]) extends EObject {
   override def toString() = a.mkString(", ")
 }
 
-case class EStructuredObject(underlying: EveStructuredObject) extends EObject {
+class EStructuredObject(val underlying: EveStructuredObject) extends EObject {
   def getType(): String = underlying.getType
   def has(field: String): Boolean = underlying.has(field)
   def hasState(state: String): Boolean = underlying.hasState(state)
@@ -145,6 +160,12 @@ case class EStructuredObject(underlying: EveStructuredObject) extends EObject {
   def set(field: String, value: EObject): Unit = underlying.set(field, value)
   def setState(state: String, value: String): Unit = underlying.setState(state, value)
   def apply(field: String): EObject = get(field).orNull
+}
+
+case class EMappingObject(override val underlying: EveMappingObject) extends EStructuredObject(underlying) with EObject
+
+case class EQueryMappingObject(override val underlying: EveQueryMappingObject) extends EStructuredObject(underlying) with EveQueryObject with EObject {
+  override def getId: String = underlying.getId
 }
 
 object EveObjectDSL {
