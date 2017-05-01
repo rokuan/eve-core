@@ -1,6 +1,7 @@
 package com.ideal.evecore.evaluator
 
 import java.util.Calendar
+import java.util.Date
 
 import com.ideal.evecore.evaluator.Evaluator._
 import com.ideal.evecore.interpreter._
@@ -170,7 +171,7 @@ trait Interpreter extends Evaluator {
 
   def findTime(time: ITimeObject): Try[EObject] = {
     time match {
-      case null => Failure(new Exception("Source object is null"))
+      case null => Success(EDateObject(new Date()))
       case s: SingleTimeObject => {
         Try {
           val result = Calendar.getInstance()

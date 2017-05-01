@@ -23,7 +23,7 @@ case object EUndefinedValueMatcher extends EValueMatcher
 object EValueMatcher {
   implicit def arrayToValueMatcher[T](a: Array[T]): ValueMatcher = new OrValueMatcher(a.map(apply(_)).toSeq: _*)
   implicit def stringToValueMatcher(s: String): ValueMatcher = s match {
-    case "*" => new AnyValueMatcher
+    case "*" => AnyValueMatcher.ANY_VALUE_MATCHER
     case _ => new StringValueMatcher(s)
   }
   implicit def booleanToValueMatcher(b: Boolean): ValueMatcher = new BooleanValueMatcher(b)
@@ -42,7 +42,7 @@ object EValueMatcher {
     case a: Array[_] => arrayToValueMatcher(a)
     case n: Number => new NumberValueMatcher(n)
     case m: Map[_, _] => m.map { case (key, value) => (key.toString -> apply(value)) }
-    case null => new NullValueMatcher
-    case _ => new UndefinedValueMatcher
+    case null => NullValueMatcher.NULL_VALUE_MATCHER
+    case _ => UndefinedValueMatcher.UNDEFINED_VALUE_MATCHER
   }
 }
