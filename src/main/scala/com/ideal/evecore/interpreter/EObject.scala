@@ -40,7 +40,7 @@ object EObject {
   implicit def numberToEveObject(n: Number): ENumberObject = ENumberObject(n)
   implicit def booleanToEveObject(b: Boolean): EBooleanObject = EBooleanObject(b)
   implicit def dateToEveObject(d: Date): EDateObject = EDateObject(d)
-  implicit def arrayToEveObject(a: Array[EObject]): EObjectList = EObjectList(a)
+  implicit def arrayToEveObject(a: Array[EObject]): EObjectList = EObjectList(a.toList)
   //implicit def mapToEveObject(m: Mapping[EObject]): EMappingObject = EMappingObject(m)
   implicit def optionToEveObject(o: Option[_]): EObject = o.map(anyToEObject).orNull
 
@@ -77,7 +77,7 @@ object EObject {
     case d: EDateObject => d
   }
 
-  implicit def eveObjectListToEObjectList(o: EveObjectList): EObjectList = EObjectList(o.getValues.map(eveObjectToEObject))
+  implicit def eveObjectListToEObjectList(o: EveObjectList): EObjectList = EObjectList(o.getValues.map(eveObjectToEObject).toList)
 
   implicit def eveStructuredObjectToEStructuredObject(o: EveStructuredObject): EStructuredObject = new EStructuredObject(o)
   implicit def eStructuredObjectToEveStructuredObject(o: EStructuredObject): EveStructuredObject = o.underlying
@@ -89,7 +89,8 @@ object EObject {
     case n: Number => n
     case b: Boolean => b
     case d: Date => d
-    case a: Array[_] => EObjectList(a.map(anyToEObject))
+    case a: Array[_] => EObjectList(a.map(anyToEObject).toList)
+    case l: List[_] => EObjectList(l.map(anyToEObject))
     case m: Map[_, _] => EMappingObject(new EveMappingObject(m.map { case (k, o) => new com.ideal.evecore.util.Pair[String, EveObject](k.toString, anyToEveObject(o)) }.toSeq: _*))
     case o: Option[_] => o
     case o: EObject => o
@@ -115,7 +116,7 @@ object EObject {
     case q: EveQueryMappingObject => EQueryMappingObject(q)
     case m: EveMappingObject => EMappingObject(m)
     case o: EveStructuredObject => new EStructuredObject(o)
-    case l: EveObjectList => EObjectList(l.getValues.map(eveObjectToEObject(_)))
+    case l: EveObjectList => EObjectList(l.getValues.map(eveObjectToEObject(_)).toList)
   }
 
   implicit def eObjectToEveObject(o: EObject): EveObject = o match {
@@ -146,8 +147,8 @@ case class EDateObject(d: Date) extends EObject {
 }
 case class ETimeObject(t: ITimeObject) extends EObject
 case class EPlaceObject(p: IPlaceObject) extends EObject
-case class EObjectList(a: Seq[EObject]) extends EObject {
-  def this(a: Array[EObject]) = this(a.toSeq)
+case class EObjectList(a: List[EObject]) extends EObject {
+  def this(a: Array[EObject]) = this(a.toList)
   override def toString() = a.mkString(", ")
 }
 
@@ -169,11 +170,12 @@ case class EQueryMappingObject(override val underlying: EveQueryMappingObject) e
 }
 
 object EveObjectDSL {
-  class EveObjectPath(val o: EObject) {
+  implicit class EveObjectPath(o: EObject) {
     def \(field: String): EObject = o.asInstanceOf[EStructuredObject](field)
     def toNumber: Number = o.asInstanceOf[ENumberObject].n
     def toBoolean: Boolean = o.asInstanceOf[EBooleanObject].b
     def toText: String = o.asInstanceOf[EStringObject].s
+    def toDate: Date = o.asInstanceOf[EDateObject].d
+    def toList: List[EObject] = o.asInstanceOf[EObjectList].a
   }
-  implicit def eveObjectToPath(o: EObject) = new EveObjectPath(o)
 }

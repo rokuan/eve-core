@@ -190,7 +190,7 @@ trait Interpreter extends Evaluator {
       }
       case r: RelativeTimeObject => Success(EDateObject(r.getDate))
       case d: DayPartObject => notImplementedYet
-      case p: TimePeriodObject => Success(EObjectList(Array(EDateObject(p.getFrom), EDateObject(p.getTo))))
+      case p: TimePeriodObject => Success(EObjectList(List(EDateObject(p.getFrom), EDateObject(p.getTo))))
       case _ => notImplementedYet
     }
   }

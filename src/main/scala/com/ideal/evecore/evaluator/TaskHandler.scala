@@ -55,7 +55,7 @@ class TaskHandler(private val world: World) {
     time match {
       case EDateObject(d) => scheduleFixedDateTask(d, what, executeFunc)
       case ETimeObject(t) => EveResultObject.ko(new Exception("Not implemented yet")) // TODO: create an event-based system around ITimeObject
-      case EObjectList(Seq(EDateObject(from), EDateObject(to))) => scheduleDurationTask(from, to, what, executeFunc)
+      case EObjectList(List(EDateObject(from), EDateObject(to))) => scheduleDurationTask(from, to, what, executeFunc)
       case _ => EveResultObject.ok()
     }
   }
