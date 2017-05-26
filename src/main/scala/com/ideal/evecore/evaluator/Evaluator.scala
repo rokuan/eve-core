@@ -32,6 +32,13 @@ trait Interpreter extends Evaluator {
   protected val taskHandler: TaskHandler
   protected val history: History
 
+  /**
+   * Defines the properties of the interpretation engine such as its name, its way
+   * to handle state changes, etc
+   * @return
+   */
+  protected def getEngineObject(): EveStructuredObject
+
   override def eval(obj: InterpretationObject): Result[EveObject] = {
     obj match {
       case question: QuestionObject => evalQuestion(question)
@@ -105,8 +112,8 @@ trait Interpreter extends Evaluator {
     val subject = findSubject(order.getSubject)
     val what = findObject(order.getDirectObject)
     val how = findWay(order.getWayAdverbial)
-    val when = findTime(order.getTimeAdverbial)
     val target = findObject(order.getTarget)
+    val when = findTime(order.getTimeAdverbial)
 
     if(action.isStateBound){
       val result = for {
