@@ -34,7 +34,7 @@ object Writer {
     override def write(o: IWayObject): Map[String, EObject] =
       Map[String, EObject](
         WayObjectKey.WayType -> o.getWayType.name(),
-        WayObjectKey.WayContext -> Option(o.getWayPreposition).map(_.getWayContext.name())
+        WayObjectKey.WayContext -> Option(o.getWayPreposition).map(_.getContext.name())
       )
   }
 

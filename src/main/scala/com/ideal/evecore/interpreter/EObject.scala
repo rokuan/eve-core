@@ -113,7 +113,7 @@ object EObject {
     case b: EveBooleanObject => EBooleanObject(b.getValue)
     case n: EveNumberObject => ENumberObject(n.getValue)
     case d: EveDateObject => EDateObject(d.getValue)
-    case q: EveQueryMappingObject => EQueryMappingObject(q)
+    case q: EveQueryObject => new EQueryObject(q)
     case m: EveMappingObject => EMappingObject(m)
     case o: EveStructuredObject => new EStructuredObject(o)
     case l: EveObjectList => EObjectList(l.getValues.map(eveObjectToEObject(_)).toList)
@@ -158,15 +158,19 @@ class EStructuredObject(val underlying: EveStructuredObject) extends EObject {
   def hasState(state: String): Boolean = underlying.hasState(state)
   def get(field: String): Option[EObject] = implicitly[Option[EveObject]](underlying.get(field)).map(o => o: EObject)
   def getState(state: String): Option[String] = underlying.getState(state)
-  def set(field: String, value: EObject): Unit = underlying.set(field, value)
-  def setState(state: String, value: String): Unit = underlying.setState(state, value)
+  def set(field: String, value: EObject): Boolean = underlying.set(field, value)
+  def setState(state: String, value: String): Boolean = underlying.setState(state, value)
   def apply(field: String): EObject = get(field).orNull
 }
 
 case class EMappingObject(override val underlying: EveMappingObject) extends EStructuredObject(underlying) with EObject
 
-case class EQueryMappingObject(override val underlying: EveQueryMappingObject) extends EStructuredObject(underlying) with EveQueryObject with EObject {
+/*case class EQueryMappingObject(override val underlying: EveQueryMappingObject) extends EStructuredObject(underlying) with EveQueryObject with EObject {
   override def getId: String = underlying.getId
+}*/
+
+case class EQueryObject(override val underlying: EveQueryObject) extends EStructuredObject(underlying) with EObject {
+  def getId(): String = underlying.getId
 }
 
 object EveObjectDSL {
