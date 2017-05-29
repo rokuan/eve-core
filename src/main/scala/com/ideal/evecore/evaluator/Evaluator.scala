@@ -126,23 +126,23 @@ trait Interpreter extends Evaluator {
     val target = findObject(order.getTarget)
     val when = findTime(order.getTimeAdverbial)
 
-    if (action.isStateBound) {
-      val result = for {
-        time <- when
-        target <- what
-      } yield {
-        taskHandler.scheduleDelayedStateTask(time, action, target)
-      }
-      result match {
-        case Success(v) => v
-        case Failure(e) => Result.ko(e)
-      }
-    } else if (action.isTargetAction) {
+    if (action.isTargetAction) {
       val result = for {
         time <- when
         target <- what
       } yield {
         taskHandler.scheduleDelayedActionTask(time, action, target)
+      }
+      result match {
+        case Success(v) => v
+        case Failure(e) => Result.ko(e)
+      }
+    } else if (action.isStateBound) {
+      val result = for {
+        time <- when
+        target <- what
+      } yield {
+        taskHandler.scheduleDelayedStateTask(time, action, target)
       }
       result match {
         case Success(v) => v
@@ -174,7 +174,8 @@ trait Interpreter extends Evaluator {
 
   final def findObject(src: INominalObject, createIfNeeded: Boolean = false): Try[EObject] = {
     src match {
-      case null => Failure(new Exception("Source object is null"))
+      //case null => Failure(new Exception("Source object is null"))
+      case null => Try(getEngineObject())
       case abstractTarget: AbstractTarget => findAbstractTarget(abstractTarget)
       case additionalPlace: AdditionalPlace => findAdditionalDataByCode(additionalPlace.place.getCode)
       case char: CharacterObject => findCharacter(char)

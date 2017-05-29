@@ -59,7 +59,7 @@ class TaskHandler(private val world: World) {
   }
 
   def scheduleDelayedActionTask(time: EObject, action: IAction, what: EObject): Result[EveObject] = {
-    val executeFunc: ExecutionProcessor[EObject] = processResult(_.call(action.getAction))
+    val executeFunc: ExecutionProcessor[EObject] = processResult(_.call(action))
 
     time match {
       case EDateObject(d) => scheduleFixedDateTask(d, what, executeFunc)
